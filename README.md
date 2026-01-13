@@ -55,7 +55,6 @@ docker-compose exec backend python manage.py createsuperuser
 # import mock data 
 docker-compose exec backend python manage.py seed_data
 
-
 # Access the app
 # API: http://localhost:8000/api/v1/
 # Admin: http://localhost:8000/admin/

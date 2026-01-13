@@ -15,12 +15,10 @@ class NPIValidator:
     """
     NPI (National Provider Identifier) Validator.
     
-    NPIs are 10-digit numbers that must pass the Luhn algorithm
-    with a prefix of 80840 (standard healthcare prefix).
+    NPIs are 10-digit numbers.
     """
     
     NPI_PATTERN = re.compile(r"^\d{10}$")
-    LUHN_PREFIX = "80840"
     
     @classmethod
     def validate(cls, npi: str) -> Tuple[bool, Optional[str]]:
@@ -41,29 +39,7 @@ class NPIValidator:
         if not cls.NPI_PATTERN.match(npi):
             return False, "NPI must be exactly 10 digits"
         
-        if not cls._luhn_check(npi):
-            return False, "NPI failed checksum validation"
-        
         return True, None
-    
-    @classmethod
-    def _luhn_check(cls, npi: str) -> bool:
-        """
-        Validate NPI using Luhn algorithm.
-        The NPI is prefixed with 80840 before applying Luhn.
-        """
-        full_number = cls.LUHN_PREFIX + npi
-        
-        total = 0
-        for i, digit in enumerate(reversed(full_number)):
-            n = int(digit)
-            if i % 2 == 1:  # Double every second digit from right
-                n *= 2
-                if n > 9:
-                    n -= 9
-            total += n
-        
-        return total % 10 == 0
 
 
 def validate_npi(value: str) -> str:
