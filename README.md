@@ -25,47 +25,44 @@ A production-ready web application for specialty pharmacies to automatically gen
 
 ### Prerequisites
 
-- Python 3.11+
-- PostgreSQL (or use Docker)
-- Redis (or use Docker)
+- Docker & Docker Compose
+- Node.js 18+ (for frontend)
 
-### Option 1: Docker (Recommended)
+### Docker (Recommended)
 
 ```bash
-# Clone repository
+# 1. Clone repository
 git clone <repo-url>
-cd care-plan-generator
+cd larmar-care
 
-# Copy environment file
+# 2. Copy environment file and configure API keys
 cp backend/.env.example backend/.env
-# Edit .env with your settings
+# Edit backend/.env with your ANTHROPIC_API_KEY or OPENAI_API_KEY
 
-# Start all services
+# 3. Start all backend services (database migration runs automatically)
 docker-compose up -d
 
-
-docker-compose exec backend python manage.py makemigrations providers patients orders care_plans
-
-# Run migrations
-docker-compose exec backend python manage.py migrate
-
-# Create superuser
+# 4. (Optional) Create admin user
 docker-compose exec backend python manage.py createsuperuser
 
-# import mock data 
+# 5. (Optional) Import mock data for testing
 docker-compose exec backend python manage.py seed_data
 
-# Access the app
-# API: http://localhost:8000/api/v1/
-# Admin: http://localhost:8000/admin/
-```
-
-run frontend: 
-
+# 6. Start frontend
 cd frontend
 npm install
 npm run dev
-### Option 2: Manual Setup
+```
+
+### Access the App
+
+| Service | URL |
+|---------|-----|
+| Frontend | http://localhost:3000 |
+| API | http://localhost:8000/api/v1/ |
+| Admin | http://localhost:8000/admin/ |
+
+### Manual Setup (Alternative)
 
 ```bash
 # Clone repository

@@ -2,8 +2,28 @@
 Pytest configuration and fixtures.
 """
 
+from unittest.mock import MagicMock, patch
+
 import pytest
 from rest_framework.test import APIClient
+
+
+@pytest.fixture(autouse=True)
+def mock_llm_service():
+    """Mock LLM service to skip actual API calls during tests."""
+    mock_response = MagicMock()
+    mock_response.content = "Mock care plan content for testing."
+    mock_response.model = "mock-model"
+    mock_response.prompt_tokens = 100
+    mock_response.completion_tokens = 50
+    mock_response.total_tokens = 150
+    mock_response.generation_time_ms = 100
+
+    with patch("apps.care_plans.tasks.get_llm_service") as mock_get_llm:
+        mock_service = MagicMock()
+        mock_service.generate.return_value = mock_response
+        mock_get_llm.return_value = mock_service
+        yield mock_service
 
 
 @pytest.fixture

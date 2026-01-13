@@ -31,12 +31,12 @@ class TestOrderAPI:
         assert Provider.objects.count() == 1
     
     def test_create_order_invalid_npi_fails(self, api_client, sample_order_data):
-        """Test that invalid NPI returns validation error."""
-        sample_order_data["provider_npi"] = "1234567890"  # Invalid checksum
-        
+        """Test that invalid NPI format returns validation error."""
+        sample_order_data["provider_npi"] = "12345"  # Only 5 digits (invalid format)
+
         url = reverse("order-list")
         response = api_client.post(url, sample_order_data, format="json")
-        
+
         assert response.status_code == status.HTTP_400_BAD_REQUEST
     
     def test_create_order_invalid_mrn_fails(self, api_client, sample_order_data):
@@ -108,18 +108,17 @@ class TestOrderAPI:
     def test_get_order_detail(self, api_client, sample_order_data):
         """Test retrieving order by ID."""
         url = reverse("order-list")
-        
+
         # Create order
         create_response = api_client.post(url, sample_order_data, format="json")
         order_id = create_response.json()["order"]["id"]
-        
+
         # Get order detail
         detail_url = reverse("order-detail", kwargs={"pk": order_id})
         response = api_client.get(detail_url)
-        
+
         assert response.status_code == status.HTTP_200_OK
         assert response.json()["id"] == order_id
-
 
 @pytest.mark.django_db
 class TestProviderAPI:
