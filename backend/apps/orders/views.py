@@ -180,20 +180,12 @@ class OrderViewSet(viewsets.ModelViewSet):
         else:
             patient = self._create_patient(data)
         
-        # Generate duplicate hash
-        duplicate_hash = OrderDuplicateDetector.generate_hash(
-            str(patient.id),
-            str(provider.id),
-            data["medication_name"],
-        )
-        
         # Create order
         order = Order.objects.create(
             patient=patient,
             provider=provider,
             medication_name=data["medication_name"],
             patient_records=data["patient_records"],
-            duplicate_check_hash=duplicate_hash,
             confirmed_not_duplicate=data.get("confirm_not_duplicate", False),
             status="pending",
         )

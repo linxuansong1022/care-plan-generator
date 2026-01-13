@@ -217,10 +217,8 @@ class PatientDuplicateDetector:
 
 
 class OrderDuplicateDetector:
-    """Detects duplicate orders based on content hash and time window."""
-    
-    DUPLICATE_WINDOW_DAYS = 30
-    
+    """Detects duplicate orders based on patient, medication, and date."""
+
     @classmethod
     def check(
         cls,
@@ -231,25 +229,53 @@ class OrderDuplicateDetector:
     ) -> DuplicateCheckResult:
         """
         Check for order duplicates.
-        
-        Uses a hash of patient + provider + medication + date to detect duplicates.
+
+        Rules:
+        - Same patient + same medication + same date → ERROR (block)
+        - Same patient + same medication + different date → WARNING (can confirm)
         """
+        # Skip check for new patients (not yet in DB)
+        if patient_id.startswith("new:"):
+            return DuplicateCheckResult()
+
         warnings = []
-        
-        # Generate hash
-        duplicate_hash = cls.generate_hash(patient_id, provider_id, medication_name)
-        
-        # Look for recent orders with same hash
-        cutoff = datetime.now() - timedelta(days=cls.DUPLICATE_WINDOW_DAYS)
-        
-        existing = Order.objects.filter(
-            duplicate_check_hash=duplicate_hash,
-            created_at__gte=cutoff,
+        today = datetime.now().date()
+
+        # Check: Same patient + same medication (any date)
+        existing_order = Order.objects.filter(
+            patient_id=patient_id,
+            medication_name__iexact=medication_name.strip(),
         ).order_by("-created_at").first()
-        
-        if existing:
+
+        if not existing_order:
+            return DuplicateCheckResult()
+
+        # Check if same day
+        order_date = existing_order.created_at.date()
+        is_same_day = order_date == today
+
+        if is_same_day:
+            # Same day → BLOCK
+            warnings.append(Warning(
+                code="ORDER_DUPLICATE_SAME_DAY",
+                message="An order for the same patient and medication was already created today. "
+                        "Cannot create duplicate order on the same day.",
+                action_required=True,
+                data={
+                    "existing_order_id": str(existing_order.id),
+                    "existing_order_date": existing_order.created_at.isoformat(),
+                    "existing_order_status": existing_order.status,
+                },
+            ))
+            return DuplicateCheckResult(
+                is_duplicate=True,
+                should_block=True,
+                existing_record=existing_order,
+                warnings=warnings,
+            )
+        else:
+            # Different day → WARNING (can confirm)
             if confirm_not_duplicate:
-                # User confirmed - allow but note it
                 warnings.append(Warning(
                     code="ORDER_DUPLICATE_CONFIRMED",
                     message="User confirmed this order is not a duplicate.",
@@ -259,38 +285,25 @@ class OrderDuplicateDetector:
                     is_potential_duplicate=True,
                     warnings=warnings,
                 )
-            
-            # Potential duplicate - require confirmation
-            days_ago = (datetime.now() - existing.created_at.replace(tzinfo=None)).days
-            
+
+            days_ago = (today - order_date).days
             warnings.append(Warning(
                 code="ORDER_POSSIBLE_DUPLICATE",
                 message=f"A similar order was created {days_ago} day(s) ago "
-                        f"for the same patient, provider, and medication. "
+                        f"for the same patient and medication. "
                         f"Please confirm this is not a duplicate.",
                 action_required=True,
                 data={
-                    "existing_order_id": str(existing.id),
-                    "existing_order_date": existing.created_at.isoformat(),
-                    "existing_order_status": existing.status,
+                    "existing_order_id": str(existing_order.id),
+                    "existing_order_date": existing_order.created_at.isoformat(),
+                    "existing_order_status": existing_order.status,
                 },
             ))
             return DuplicateCheckResult(
                 is_potential_duplicate=True,
-                existing_record=existing,
+                existing_record=existing_order,
                 warnings=warnings,
             )
-        
-        return DuplicateCheckResult()
-    
-    @staticmethod
-    def generate_hash(patient_id: str, provider_id: str, medication_name: str) -> str:
-        """Generate deterministic hash for duplicate detection."""
-        normalized_med = medication_name.lower().strip()
-        today = datetime.now().date().isoformat()
-        
-        hash_input = f"{patient_id}:{provider_id}:{normalized_med}:{today}"
-        return hashlib.sha256(hash_input.encode()).hexdigest()
 
 
 @dataclass
