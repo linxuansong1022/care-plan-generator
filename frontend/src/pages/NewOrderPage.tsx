@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from 'react-router-dom'
-import { AlertCircle, CheckCircle, Loader2 } from 'lucide-react'
+import { AlertCircle, CheckCircle, Loader2, Info } from 'lucide-react'
 
 import { orderFormSchema, type OrderFormData, isValidNPI } from '@/lib/validators'
 import { useCreateOrder } from '@/hooks/useOrders'
@@ -13,11 +13,20 @@ import { Select } from '@/components/ui/Select'
 import { FormField } from '@/components/forms/FormField'
 import { DuplicateWarningModal } from '@/components/modals/DuplicateWarningModal'
 
+interface Warning {
+  code: string
+  message: string
+  action_required: boolean
+  data?: Record<string, any>
+}
+
 export function NewOrderPage() {
   const navigate = useNavigate()
   const [showDuplicateWarning, setShowDuplicateWarning] = useState(false)
-  const [duplicateWarnings, setDuplicateWarnings] = useState<string[]>([])
+  const [duplicateWarnings, setDuplicateWarnings] = useState<Warning[]>([])
+  const [blockingError, setBlockingError] = useState<string | undefined>()
   const [pendingData, setPendingData] = useState<OrderFormData | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
   const {
     register,
@@ -47,29 +56,56 @@ export function NewOrderPage() {
   const npiValid = providerNpi?.length === 10 ? isValidNPI(providerNpi) : null
 
   const onSubmit = async (data: OrderFormData, confirmNotDuplicate = false) => {
+    setSuccessMessage(null)
+    setBlockingError(undefined)
+    
     try {
       const result = await createOrder.mutateAsync({
         ...data,
         confirmNotDuplicate,
       })
 
+      // Check for blocking issues
+      if (result.isBlocked) {
+        setBlockingError(result.blockingReason)
+        setDuplicateWarnings(result.allWarnings || [])
+        setShowDuplicateWarning(true)
+        return
+      }
+
+      // Check for warnings requiring confirmation
       if (result.requiresConfirmation && !confirmNotDuplicate) {
-        setDuplicateWarnings([
-          ...result.providerWarnings,
-          ...result.patientWarnings,
-          ...result.warnings,
-        ])
+        setDuplicateWarnings(result.allWarnings || [])
         setPendingData(data)
         setShowDuplicateWarning(true)
         return
       }
 
-      // Success
+      // Success - show info messages if any
+      const infoMessages = result.allWarnings?.filter((w: Warning) => !w.action_required) || []
+      if (infoMessages.length > 0) {
+        setSuccessMessage(infoMessages.map((w: Warning) => w.message).join(' '))
+      }
+
+      // Navigate to order detail
       navigate(`/orders/${result.order?.id}`, {
-        state: { message: 'Order created successfully' },
+        state: { 
+          message: 'Order created successfully',
+          warnings: infoMessages,
+        },
       })
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create order:', error)
+      
+      // Parse error response for warnings
+      if (error.response?.data) {
+        const data = error.response.data
+        if (data.all_warnings || data.warnings) {
+          setDuplicateWarnings(data.all_warnings || data.warnings || [])
+          setBlockingError(data.blocking_reason || data.detail)
+          setShowDuplicateWarning(true)
+        }
+      }
     }
   }
 
@@ -82,18 +118,36 @@ export function NewOrderPage() {
   const handleCancelDuplicate = () => {
     setShowDuplicateWarning(false)
     setPendingData(null)
+    setBlockingError(undefined)
   }
 
   return (
     <div className="max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold mb-6">Create New Order</h1>
 
-      {createOrder.isError && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
-          <AlertCircle className="h-5 w-5 text-red-500" />
-          <p className="text-red-700">
-            {(createOrder.error as Error)?.message || 'Failed to create order'}
-          </p>
+      {/* Success Message */}
+      {successMessage && (
+        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-start gap-3">
+          <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
+          <div>
+            <p className="text-green-700 font-medium">Order created!</p>
+            <p className="text-green-600 text-sm">{successMessage}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Error Message */}
+      {createOrder.isError && !showDuplicateWarning && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+          <AlertCircle className="h-5 w-5 text-red-500 mt-0.5" />
+          <div>
+            <p className="text-red-700 font-medium">Failed to create order</p>
+            <p className="text-red-600 text-sm">
+              {(createOrder.error as any)?.response?.data?.detail || 
+               (createOrder.error as Error)?.message || 
+               'An unexpected error occurred'}
+            </p>
+          </div>
         </div>
       )}
 
@@ -205,7 +259,7 @@ export function NewOrderPage() {
               <div className="relative">
                 <Input
                   {...register('providerNpi')}
-                  placeholder="1234567893"
+                  placeholder="1234567890"
                   maxLength={10}
                   className="font-mono pr-10"
                   error={!!errors.providerNpi}
@@ -221,7 +275,7 @@ export function NewOrderPage() {
                 )}
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                10 digits with valid checksum
+                10 digits
               </p>
             </FormField>
 
@@ -232,6 +286,15 @@ export function NewOrderPage() {
                 error={!!errors.providerName}
               />
             </FormField>
+          </div>
+          
+          {/* Info about NPI */}
+          <div className="mt-4 p-3 bg-blue-50 rounded-lg flex items-start gap-2">
+            <Info className="h-4 w-4 text-blue-500 mt-0.5" />
+            <p className="text-sm text-blue-700">
+              If this NPI already exists with a different name, you will be notified. 
+              If the NPI is new, a new provider record will be created.
+            </p>
           </div>
         </div>
 
@@ -294,6 +357,7 @@ export function NewOrderPage() {
       <DuplicateWarningModal
         open={showDuplicateWarning}
         warnings={duplicateWarnings}
+        blockingError={blockingError}
         onConfirm={handleConfirmNotDuplicate}
         onCancel={handleCancelDuplicate}
         isLoading={createOrder.isPending}

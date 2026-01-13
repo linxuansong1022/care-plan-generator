@@ -134,12 +134,21 @@ class OrderViewSet(viewsets.ModelViewSet):
             # Prepare response
             response_serializer = OrderSerializer(order)
             
+            # Collect all warnings for response
+            patient_warnings = [
+                w.message for w in dup_result.patient_result.warnings
+            ] if dup_result.patient_result else []
+            
+            provider_warnings = [
+                w.message for w in dup_result.provider_result.warnings
+            ] if dup_result.provider_result else []
+            
             return Response(
                 {
                     "order": response_serializer.data,
                     "warnings": [w.message for w in dup_result.all_warnings],
-                    "patient_warnings": [],
-                    "provider_warnings": [],
+                    "patient_warnings": patient_warnings,
+                    "provider_warnings": provider_warnings,
                     "is_potential_duplicate": False,
                     "requires_confirmation": False,
                 },
