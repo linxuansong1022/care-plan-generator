@@ -376,3 +376,29 @@ frontend/
 terraform/
 └── ... (AWS infrastructure)
 ```
+
+## Intentionally Out of Scope (Phase 2)
+
+The following features were intentionally excluded from the MVP to focus on the core value proposition (LLM-powered care plan generation). These are planned for Phase 2:
+
+| Feature | What's Missing | Why Deferred |
+|---------|----------------|--------------|
+| **Authentication** | No user login, no role-based access control (RBAC) | MVP focuses on core functionality; auth can be quickly added via Django auth or Auth0 |
+| **HIPAA Compliance** | No PHI encryption at rest, no access audit trails, no BAA with cloud providers | Requires significant infrastructure investment; would use AWS HIPAA-eligible services in production |
+| **Care Plan Editing** | Users cannot edit generated care plans, only download or regenerate | Need to first validate LLM output quality before building editing UI |
+| **Version History** | Regenerating overwrites the previous care plan | Current design stores only the latest version; versioning adds complexity |
+| **Real-time Updates** | Frontend polls for status instead of WebSocket push | Polling is sufficient for MVP; WebSocket is a Phase 2 optimization |
+| **Audit Logging** | No comprehensive audit trail (who did what, when) | Required for healthcare compliance but deferred for MVP |
+| **Rate Limiting** | No API throttling or rate limits | Needed for production but acceptable for internal tool MVP |
+| **Multi-tenancy** | Single-tenant design | Would need redesign if serving multiple pharmacy organizations |
+
+### HIPAA Compliance Roadmap (Phase 2)
+
+For production deployment with real PHI (Protected Health Information):
+
+1. **Encryption** - Enable encryption at rest (AWS RDS, S3) and in transit (TLS)
+2. **Access Controls** - Implement RBAC with minimum necessary access
+3. **Audit Trails** - Log all PHI access with immutable audit logs
+4. **BAA** - Sign Business Associate Agreements with AWS, Anthropic/OpenAI
+5. **Data Retention** - Implement compliant data retention and deletion policies
+6. **Incident Response** - Establish breach notification procedures
