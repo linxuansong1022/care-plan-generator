@@ -79,13 +79,21 @@ export const orderService = {
 
     const response = await api.post('/orders/', payload)
 
+    const warnings = response.data.warnings || []
+    const patientWarnings = response.data.patient_warnings || []
+    const providerWarnings = response.data.provider_warnings || []
+    const allWarnings = [...warnings, ...patientWarnings, ...providerWarnings]
+
     return {
       order: response.data.order ? transformOrder(response.data.order) : undefined,
-      warnings: response.data.warnings || [],
-      patientWarnings: response.data.patient_warnings || [],
-      providerWarnings: response.data.provider_warnings || [],
+      warnings,
+      patientWarnings,
+      providerWarnings,
+      allWarnings,
       isPotentialDuplicate: response.data.is_potential_duplicate || false,
       requiresConfirmation: response.data.requires_confirmation || false,
+      isBlocked: response.data.is_blocked || false,
+      blockingReason: response.data.blocking_reason,
       duplicateOrderId: response.data.duplicate_order_id,
     }
   },
