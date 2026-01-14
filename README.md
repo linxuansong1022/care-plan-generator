@@ -2,6 +2,9 @@
 
 A production-ready web application for specialty pharmacies to automatically generate care plans using LLM technology.
 
+
+<img width="1172" height="751" alt="Screenshot 2026-01-06 at 9 16 40 PM" src="https://github.com/user-attachments/assets/eec3a5cd-d318-4b50-9f9b-3bf44aa5364f" />
+
 ## Features
 
 - ✅ Web form for patient/provider/order data entry
