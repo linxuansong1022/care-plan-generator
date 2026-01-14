@@ -2,27 +2,36 @@
 
 A production-ready web application for specialty pharmacies to automatically generate care plans using LLM technology.
 
+<img width="1172" height="751" alt="Screenshot 2026-01-06 at 9 16 40 PM" src="https://github.com/user-attachments/assets/eec3a5cd-d318-4b50-9f9b-3bf44aa5364f" />
 
-<img width="1172" height="751" alt="Screenshot 2026-01-06 at 9 16 40 PM" src="https://github.com/user-attachments/assets/eec3a5cd-d318-4b50-9f9b-3bf44aa5364f" />
+## Background
+
+**Customer:** A specialty pharmacy
+
+**Problem:** Pharmacists spend 20-40 minutes per patient manually creating care plans. These are required for compliance and Medicare/pharma reimbursement. The pharmacy is short-staffed and backlogged.
+
+**Solution:** A web application that allows medical assistants to input patient/order information and automatically generate care plans using LLM.
 
 ## Features
 
 - ✅ Web form for patient/provider/order data entry
-- ✅ Real-time validation (NPI Luhn checksum, ICD-10 format, MRN)
-- ✅ Duplicate detection with user confirmation workflow
-- ✅ LLM-powered care plan generation (Claude/OpenAI)
+- ✅ Real-time input validation (NPI, MRN, ICD-10, etc.)
+- ✅ Duplicate detection for patients and orders
+- ✅ LLM-powered care plan generation
 - ✅ Async processing with Celery
-- ✅ HIPAA-compliant error handling
-- ✅ Django REST Framework API
-- ✅ PostgreSQL database
+- ✅ Care plan download
+- ✅ Export all data for pharma reporting
 
 ## Tech Stack
 
-- **Backend**: Django 5.0, Django REST Framework
-- **Database**: PostgreSQL
-- **Task Queue**: Celery + Redis
-- **LLM**: Anthropic Claude / OpenAI
-- **Infrastructure**: Docker, Terraform, AWS
+| Component | Technology |
+|-----------|------------|
+| Backend | Django 5.0, Django REST Framework |
+| Database | PostgreSQL |
+| Task Queue | Celery + Redis |
+| LLM | Anthropic Claude / OpenAI (configurable) |
+| Frontend | React + Vite |
+| Infrastructure | Docker, Terraform, AWS |
 
 ## Quick Start
 
@@ -30,12 +39,12 @@ A production-ready web application for specialty pharmacies to automatically gen
 
 - Docker & Docker Compose
 
-### Docker (Recommended)
+### Setup
 
 ```bash
 # 1. Clone repository
 git clone <repo-url>
-cd larmar-care
+cd larmar-careplan
 
 # 2. Copy environment file and configure API keys
 cp backend/.env.example backend/.env
@@ -51,7 +60,7 @@ docker-compose exec backend python manage.py createsuperuser
 docker-compose exec backend python manage.py seed_data
 ```
 
-That's it! Both backend and frontend will be running via Docker.
+That's it! All services will be running via Docker.
 
 ### Access the App
 
@@ -61,62 +70,140 @@ That's it! Both backend and frontend will be running via Docker.
 | API | http://localhost:8000/api/v1/ |
 | Admin | http://localhost:8000/admin/ |
 
+## Input Fields
+
+### Patient Information
+
+| Field | Type | Validation |
+|-------|------|------------|
+| patient_first_name | string | Required |
+| patient_last_name | string | Required |
+| patient_mrn | string | Exactly 6 digits |
+| patient_date_of_birth | date | Valid date |
+| patient_sex | string | Required |
+| patient_weight | number | Required |
+| patient_allergies | string | Required |
+
+### Provider Information
+
+| Field | Type | Validation |
+|-------|------|------------|
+| provider_name | string | Required |
+| provider_npi | string | Exactly 10 digits |
+
+### Order Information
+
+| Field | Type | Validation |
+|-------|------|------------|
+| medication_name | string | Required |
+| primary_diagnosis_code | string | ICD-10 format (e.g., G70.00) |
+| additional_diagnosis_codes | list | ICD-10 format |
+| medication_history | list | List of strings |
+| patient_records | string | Free text (clinical notes) |
+
+## Duplicate Detection Logic
+
+### Patient Duplicates
+
+| Scenario | Condition | Result |
+|----------|-----------|--------|
+| Exact match | MRN same + first_name + last_name + date_of_birth all same | ✅ Reuse existing patient |
+| MRN conflict | MRN same + first_name/last_name/date_of_birth different | ⚠️ WARNING (can acknowledge & continue) |
+| Name/DOB conflict | first_name + last_name + date_of_birth same + MRN different | ⚠️ WARNING (can acknowledge & continue) |
+| No match | All different | ✅ Create new patient |
+
+### Order Duplicates
+
+| Scenario | Condition | Result |
+|----------|-----------|--------|
+| Exact duplicate | Same patient + same medication + same day | ❌ ERROR (blocked, cannot proceed) |
+| Possible duplicate | Same patient + same medication + different day | ⚠️ WARNING (can acknowledge & continue) |
+
+### Provider Duplicates
+
+| Scenario | Condition | Result |
+|----------|-----------|--------|
+| Exact match | NPI same + provider_name same | ✅ Reuse existing provider |
+| NPI conflict | NPI same + provider_name different | ❌ ERROR (blocked, must correct name) |
+| No match | NPI different | ✅ Create new provider |
+
+## Care Plan Generation
+
+### Input to LLM
+
+Patient records text that may include:
+- Patient demographics (Name, MRN, DOB, Sex, Weight, Allergies)
+- Medication
+- Primary/Secondary diagnoses
+- Home meds
+- Recent history
+- Clinical notes (e.g., Baseline clinic note, Infusion visit note, Follow-up notes)
+
+### Output Required Headers
+
+The generated care plan MUST include these sections:
+1. Problem list / Drug therapy problems (DTPs)
+2. Goals (SMART)
+3. Pharmacist interventions / plan
+4. Monitoring plan & lab schedule
+
 ## API Endpoints
 
 ### Orders
 
 ```bash
-# Create order
+# Create order (triggers care plan generation)
 POST /api/v1/orders/
-{
-    "patient_mrn": "123456",
-    "patient_first_name": "John",
-    "patient_last_name": "Doe",
-    "primary_diagnosis_code": "G70.00",
-    "provider_npi": "1234567893",
-    "provider_name": "Dr. Smith",
-    "medication_name": "IVIG",
-    "patient_records": "Clinical notes..."
-}
 
-# List orders
+# List all orders
 GET /api/v1/orders/
 
-# Get order
+# Get order details
 GET /api/v1/orders/{id}/
 
 # Regenerate care plan
 POST /api/v1/orders/{id}/regenerate/
 ```
 
+### Create Order Request Body
+
+```json
+{
+    "patient_mrn": "123456",
+    "patient_first_name": "John",
+    "patient_last_name": "Doe",
+    "patient_date_of_birth": "1979-06-08",
+    "patient_sex": "Female",
+    "patient_weight": 72,
+    "patient_allergies": "None known",
+    "provider_npi": "1234567893",
+    "provider_name": "Dr. Smith",
+    "medication_name": "IVIG",
+    "primary_diagnosis_code": "G70.00",
+    "additional_diagnosis_codes": ["I10", "K21.0"],
+    "medication_history": ["Pyridostigmine 60mg", "Prednisone 10mg"],
+    "patient_records": "Name: A.B.\nMRN: 123456\nDOB: 1979-06-08..."
+}
+```
+
 ### Care Plans
 
 ```bash
-# Get care plan
+# Get care plan content
 GET /api/v1/care-plans/by-order/{order_id}/
 
-# Get status
+# Get generation status
 GET /api/v1/care-plans/status/{order_id}/
 
-# Download care plan
+# Download care plan as file
 GET /api/v1/care-plans/download/{order_id}/
 ```
 
-### Providers
+### Export
 
 ```bash
-GET /api/v1/providers/
-GET /api/v1/providers/{id}/
-GET /api/v1/providers/by-npi/{npi}/
-```
-
-### Patients
-
-```bash
-GET /api/v1/patients/
-GET /api/v1/patients/{id}/
-GET /api/v1/patients/by-mrn/{mrn}/
-GET /api/v1/patients/{id}/history/
+# Export all orders and care plans as CSV
+GET /api/v1/export/
 ```
 
 ## Running Tests
@@ -137,32 +224,6 @@ docker-compose exec backend pytest tests/unit/
 # Run only integration tests
 docker-compose exec backend pytest tests/integration/
 ```
-
-## Validation Rules
-
-| Field | Rule |
-|-------|------|
-| NPI | Exactly 10 digits |
-| MRN | Exactly 6 digits |
-| ICD-10 | Format: Letter + 2 digits + optional decimal (e.g., G70.00) |
-
-## Duplicate Detection
-
-| Entity | Detection Method |
-|--------|------------------|
-| Provider | Same NPI → reuse; Same NPI different name → block |
-| Patient | Same MRN → reuse; Same name+DOB different MRN → warn |
-| Order | Same hash within 30 days → warn, require confirmation |
-
-## Environment Variables
-
-See `.env.example` for all available settings.
-
-Key variables:
-- `DATABASE_URL`: PostgreSQL connection string
-- `CELERY_BROKER_URL`: Redis URL for Celery
-- `ANTHROPIC_API_KEY`: API key for Claude LLM
-- `LLM_PROVIDER`: `claude` or `openai`
 
 ## Common Commands
 
@@ -205,6 +266,9 @@ lsof -i :8000
 
 # Kill the process using the port
 kill -9 <pid>
+
+# Quick fix: Kill all processes on port 5432
+lsof -ti :5432 | xargs kill -9
 ```
 
 ### Database Management
@@ -222,31 +286,53 @@ docker-compose logs -f worker  # Celery worker logs
 docker-compose restart backend
 ```
 
-### Local PostgreSQL vs Docker PostgreSQL
+## Environment Variables
 
-If you have both local PostgreSQL and Docker PostgreSQL running, they may conflict on port 5432. Choose one approach:
+See `.env.example` for all available settings.
 
-**Recommended: Use Docker only (cleaner, easier to manage)**
+| Variable | Description |
+|----------|-------------|
+| DATABASE_URL | PostgreSQL connection string |
+| CELERY_BROKER_URL | Redis URL for Celery |
+| ANTHROPIC_API_KEY | API key for Claude LLM |
+| OPENAI_API_KEY | API key for OpenAI (alternative) |
+| LLM_PROVIDER | `claude` or `openai` |
 
-```bash
-# 1. Stop local PostgreSQL
-brew services stop postgresql
-# Or kill the process directly
-kill <pid>
+## Architecture
 
-# 2. Verify Docker PostgreSQL is running
-docker ps
-
-# 3. Restart Docker services if needed
-docker-compose down
-docker-compose up -d
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│   Frontend  │────▶│   Django    │────▶│ PostgreSQL  │
+│   (React)   │     │   REST API  │     │             │
+└─────────────┘     └──────┬──────┘     └─────────────┘
+                           │
+                           │ async task
+                           ▼
+                    ┌─────────────┐     ┌─────────────┐
+                    │   Celery    │────▶│    LLM      │
+                    │   Worker    │     │ (Claude/    │
+                    └─────────────┘     │  OpenAI)    │
+                           │            └─────────────┘
+                           │
+                    ┌─────────────┐
+                    │    Redis    │
+                    │   (Queue)   │
+                    └─────────────┘
 ```
 
-**Quick fix: Kill all processes on port 5432**
+## Workflow
 
-```bash
-lsof -ti :5432 | xargs kill -9
-```
+1. Medical assistant fills out web form with patient/order data
+2. Frontend validates input (MRN 6 digits, NPI 10 digits, etc.)
+3. API checks for duplicate patients and orders
+   - If warning → user can acknowledge and continue
+   - If error → user must fix the issue
+4. Order is saved to database
+5. Celery task is triggered asynchronously
+6. Worker fetches order from database
+7. Worker calls LLM to generate care plan
+8. Care plan is saved to database
+9. User can download care plan as text file
 
 ## Project Structure
 
@@ -277,4 +363,14 @@ backend/
 │   ├── unit/
 │   └── integration/
 └── manage.py
+
+frontend/
+├── src/
+│   ├── components/
+│   ├── pages/
+│   └── services/
+└── package.json
+
+terraform/
+└── ... (AWS infrastructure)
 ```
