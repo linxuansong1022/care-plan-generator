@@ -2,107 +2,34 @@
 LLM prompts for care plan generation.
 """
 
-CARE_PLAN_SYSTEM_PROMPT = """You are an expert clinical pharmacist assistant specializing in creating comprehensive care plans for specialty pharmacy patients.
+CARE_PLAN_SYSTEM_PROMPT = """You are a clinical pharmacist assistant. Your task is to generate a comprehensive pharmacist care plan based on the patient records provided.
 
-Your role is to analyze patient records and generate structured pharmacist care plans that follow evidence-based guidelines and best practices.
+## INPUT
+You will receive patient information that may include:
+- Patient Demographics (Name, MRN, DOB, Sex, Weight, Allergies)
+- Medication
+- Primary diagnosis
+- Secondary diagnoses
+- Home meds
+- Recent history
+- Clinical Notes (e.g., Baseline clinic note, Infusion visit note, Follow-up notes)
 
-## Your Expertise Includes:
-- Drug therapy problem identification
-- SMART goal setting
-- Pharmacist intervention planning
-- Medication monitoring and safety
-- Patient education strategies
-- HIPAA-compliant documentation
+Note: The input format may vary. Extract relevant information from whatever format is provided.
 
-## Output Requirements:
-1. Generate care plans in a structured, professional format
-2. Use clinical terminology appropriately
-3. Include specific, actionable interventions
-4. Reference current guidelines where applicable
-5. Always prioritize patient safety
-6. Be thorough but concise
+## OUTPUT
+Generate a care plan that MUST include the following sections:
 
-## Important:
-- Do not make up information not present in the patient records
-- If information is missing, note what additional data would be helpful
-- Always include monitoring parameters and follow-up recommendations
+1. Problem list / Drug therapy problems (DTPs)
+2. Goals (SMART)
+3. Pharmacist interventions / plan
+4. Monitoring plan & lab schedule
+
+Base your recommendations on the patient's actual data provided.
 """
 
-CARE_PLAN_USER_PROMPT_TEMPLATE = """Generate a comprehensive pharmacist care plan based on the following patient information:
+CARE_PLAN_USER_PROMPT_TEMPLATE = """Please generate a pharmacist care plan for the following patient:
 
-## PATIENT INFORMATION
-- **Name**: {first_name} {last_name}
-- **MRN**: {mrn}
-- **Date of Birth**: {dob}
-- **Sex**: {sex}
-- **Weight**: {weight_kg} kg
-- **Allergies**: {allergies}
-
-## DIAGNOSIS
-- **Primary Diagnosis**: {primary_diagnosis_code} - {primary_diagnosis_description}
-- **Additional Diagnoses**: {additional_diagnoses}
-
-## MEDICATION
-- **Current Medication Order**: {medication_name}
-- **Medication History**: {medication_history}
-
-## CLINICAL RECORDS
 {patient_records}
-
----
-
-## REQUIRED OUTPUT STRUCTURE
-
-Please generate a care plan with the following sections:
-
-### 1. PROBLEM LIST / DRUG THERAPY PROBLEMS (DTPs)
-Identify all relevant drug therapy problems including:
-- Indication issues
-- Efficacy concerns
-- Safety risks
-- Adherence barriers
-- Drug interactions
-- Cost/access issues
-
-### 2. GOALS (SMART Format)
-For each problem, specify:
-- Specific: What exactly will be achieved
-- Measurable: How progress will be tracked
-- Achievable: Realistic given patient factors
-- Relevant: Connected to patient's condition
-- Time-bound: Expected timeline
-
-### 3. PHARMACIST INTERVENTIONS / PLAN
-Include detailed interventions for:
-- Dosing & Administration
-- Premedication (if applicable)
-- Infusion rates & titration (if applicable)
-- Hydration & organ protection
-- Risk mitigation strategies
-- Concomitant medications management
-- Monitoring during therapy
-- Adverse event management protocols
-- Documentation & communication requirements
-
-### 4. MONITORING PLAN & LAB SCHEDULE
-Specify:
-- Baseline labs required
-- Monitoring frequency
-- Parameters to track
-- Follow-up schedule
-- Red flags requiring immediate action
-
-### 5. PATIENT EDUCATION POINTS
-Key information for patient/caregiver including:
-- Medication purpose and expectations
-- Administration instructions
-- Side effects to watch for
-- When to seek medical attention
-- Lifestyle considerations
-
----
-
-Generate the care plan now, ensuring it is thorough, evidence-based, and specific to this patient's situation.
 """
 
 
@@ -121,32 +48,55 @@ def build_care_plan_prompt(
     medication_history: list,
     patient_records: str,
 ) -> str:
-    """Build the user prompt for care plan generation."""
-    
-    # Format additional diagnoses
+    """Build the user prompt for care plan generation.
+
+    Assembles all patient data into a structured format for the LLM.
+    """
+
+    # Build patient records string with all available data
+    sections = []
+
+    # Patient Demographics
+    sections.append("## PATIENT DEMOGRAPHICS")
+    sections.append(f"- Name: {first_name} {last_name}")
+    sections.append(f"- MRN: {mrn}")
+    sections.append(f"- DOB: {dob or 'Not provided'}")
+    sections.append(f"- Sex: {sex or 'Not provided'}")
+    sections.append(f"- Weight: {weight_kg} kg" if weight_kg else "- Weight: Not provided")
+    sections.append(f"- Allergies: {allergies or 'None known'}")
+
+    # Medication (current order)
+    sections.append("")
+    sections.append("## MEDICATION")
+    sections.append(f"- Current Medication Order: {medication_name}")
+
+    # Diagnoses
+    sections.append("")
+    sections.append("## DIAGNOSES")
+    sections.append(f"- Primary Diagnosis: {primary_diagnosis_code}")
+    if primary_diagnosis_description:
+        sections.append(f"  ({primary_diagnosis_description})")
+
     if additional_diagnoses:
-        additional_dx = "\n".join([f"  - {dx}" for dx in additional_diagnoses])
-    else:
-        additional_dx = "None documented"
-    
-    # Format medication history
+        sections.append("- Secondary Diagnoses:")
+        for dx in additional_diagnoses:
+            sections.append(f"  - {dx}")
+
+    # Home meds / Medication History
+    sections.append("")
+    sections.append("## HOME MEDS")
     if medication_history:
-        med_history = "\n".join([f"  - {med}" for med in medication_history])
+        for med in medication_history:
+            sections.append(f"- {med}")
     else:
-        med_history = "None documented"
-    
-    return CARE_PLAN_USER_PROMPT_TEMPLATE.format(
-        first_name=first_name,
-        last_name=last_name,
-        mrn=mrn,
-        dob=dob or "Not provided",
-        sex=sex or "Not provided",
-        weight_kg=weight_kg or "Not provided",
-        allergies=allergies or "None known",
-        primary_diagnosis_code=primary_diagnosis_code,
-        primary_diagnosis_description=primary_diagnosis_description or "",
-        additional_diagnoses=additional_dx,
-        medication_name=medication_name,
-        medication_history=med_history,
-        patient_records=patient_records,
-    )
+        sections.append("- None documented")
+
+    # Clinical Notes
+    sections.append("")
+    sections.append("## CLINICAL NOTES")
+    sections.append(patient_records)
+
+    # Combine all sections
+    combined_records = "\n".join(sections)
+
+    return CARE_PLAN_USER_PROMPT_TEMPLATE.format(patient_records=combined_records)
