@@ -377,6 +377,116 @@ terraform/
 └── ... (AWS infrastructure)
 ```
 
+## Observability
+
+The application includes a full observability stack for monitoring, logging, and alerting.
+
+### Services
+
+| Service | URL | Purpose |
+|---------|-----|---------|
+| Grafana | http://localhost:3001 | Dashboards & visualization (admin/admin) |
+| Prometheus | http://localhost:9090 | Metrics storage & queries |
+| Loki | http://localhost:3100 | Log aggregation |
+
+### Grafana Dashboard
+
+A pre-configured dashboard "Care Plan Generator" is available with panels for:
+- Order creation metrics (total, errors, duplicates)
+- Care plan generation metrics
+- LLM token usage
+- Request latency (p50, p95)
+- Application logs
+
+### Prometheus Queries (PromQL)
+
+```promql
+# Total orders created by status
+order_created_total
+
+# Orders created per minute
+rate(order_created_total[1m])
+
+# Order creation p95 latency
+histogram_quantile(0.95, rate(order_create_duration_seconds_bucket[5m]))
+
+# Care plan generation success rate
+sum(care_plan_generation_total{status="success"}) / sum(care_plan_generation_total)
+
+# Total LLM tokens used
+sum(llm_tokens_used_total) by (type)
+
+# LLM tokens used per minute
+rate(llm_tokens_used_total[5m])
+
+# Duplicate detection breakdown
+duplicate_detection_total
+
+# Care plan generation duration p95
+histogram_quantile(0.95, rate(care_plan_generation_duration_seconds_bucket[5m]))
+
+# HTTP request rate by status category
+sum(rate(django_http_requests_total_by_method_total[5m])) by (method)
+```
+
+### Loki Queries (LogQL)
+
+```logql
+# All logs from backend and worker
+{container=~".*backend.*|.*worker.*"}
+
+# Filter by log level - errors only
+{container=~".*backend.*"} |~ "error|ERROR"
+
+# Order-related logs
+{container=~".*backend.*"} |~ "order"
+
+# Care plan generation logs
+{container=~".*worker.*"} |~ "care_plan"
+
+# Search for specific order ID
+{container=~".*backend.*|.*worker.*"} |~ "order_id=abc123"
+
+# HTTP requests with 4xx/5xx status
+{container=~".*backend.*"} | json | status_code >= 400
+
+# Slow requests (> 1 second)
+{container=~".*backend.*"} | json | duration_ms > 1000
+
+# Failed care plan generations
+{container=~".*worker.*"} |~ "care_plan_generation_failed"
+
+# LLM token usage logs
+{container=~".*worker.*"} |~ "llm_generation_completed"
+```
+
+### Custom Metrics
+
+| Metric | Type | Description |
+|--------|------|-------------|
+| `order_created_total` | Counter | Orders created (labels: status) |
+| `order_create_duration_seconds` | Histogram | Order creation latency |
+| `duplicate_detection_total` | Counter | Duplicate detection results (labels: type, result) |
+| `care_plan_queued_total` | Counter | Care plans queued for generation |
+| `care_plan_generation_total` | Counter | Care plan generation attempts (labels: status) |
+| `care_plan_generation_duration_seconds` | Histogram | Care plan generation time |
+| `llm_tokens_used_total` | Counter | LLM tokens consumed (labels: type) |
+| `care_plan_retry_total` | Counter | Care plan generation retries |
+
+### Structured Log Events
+
+| Event | Level | Description |
+|-------|-------|-------------|
+| `http_request` | INFO/WARN/ERROR | HTTP request completed |
+| `order_create_started` | INFO | Order creation initiated |
+| `order_created_success` | INFO | Order created successfully |
+| `order_blocked_duplicate` | WARNING | Order blocked due to duplicate |
+| `order_requires_confirmation` | INFO | Order needs duplicate confirmation |
+| `care_plan_generation_started` | INFO | Care plan generation started |
+| `care_plan_generation_success` | INFO | Care plan generated successfully |
+| `care_plan_generation_failed` | ERROR | Care plan generation failed |
+| `llm_generation_completed` | INFO | LLM response received |
+
 ## Intentionally Out of Scope (Phase 2)
 
 The following features were intentionally excluded from the MVP to focus on the core value proposition (LLM-powered care plan generation). These are planned for Phase 2:
