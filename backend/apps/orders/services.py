@@ -132,19 +132,37 @@ class PatientDuplicateDetector:
         try:
             existing = Patient.objects.get(mrn=mrn)
             
-            # MRN found - check if names match
+            # MRN found - check if names and DOB match
             names_match = (
                 existing.first_name.lower().strip() == first_name.lower().strip() and
                 existing.last_name.lower().strip() == last_name.lower().strip()
             )
-            
-            if names_match:
+            dob_match = (
+                date_of_birth is None or
+                existing.date_of_birth is None or
+                existing.date_of_birth == date_of_birth
+            )
+
+            if names_match and dob_match:
                 warnings.append(Warning(
                     code="PATIENT_EXISTS",
                     message=f"Patient with MRN {mrn} already exists. Using existing record.",
                     action_required=False,
                 ))
-            else:
+            elif not names_match and not dob_match:
+                # Both name and DOB mismatch
+                warnings.append(Warning(
+                    code="PATIENT_DATA_MISMATCH",
+                    message=f"Patient MRN {mrn} exists with name "
+                            f"'{existing.first_name} {existing.last_name}' (DOB: {existing.date_of_birth}), "
+                            f"but input is '{first_name} {last_name}' (DOB: {date_of_birth}). Please verify.",
+                    action_required=True,
+                    data={
+                        "existing_name": f"{existing.first_name} {existing.last_name}",
+                        "existing_dob": str(existing.date_of_birth) if existing.date_of_birth else None,
+                    },
+                ))
+            elif not names_match:
                 warnings.append(Warning(
                     code="PATIENT_NAME_MISMATCH",
                     message=f"Patient MRN {mrn} exists with name "
@@ -155,7 +173,18 @@ class PatientDuplicateDetector:
                         "existing_name": f"{existing.first_name} {existing.last_name}"
                     },
                 ))
-            
+            else:
+                # DOB mismatch only
+                warnings.append(Warning(
+                    code="PATIENT_DOB_MISMATCH",
+                    message=f"Patient MRN {mrn} exists with DOB {existing.date_of_birth}, "
+                            f"but input DOB is {date_of_birth}. Please verify.",
+                    action_required=True,
+                    data={
+                        "existing_dob": str(existing.date_of_birth) if existing.date_of_birth else None,
+                    },
+                ))
+
             return DuplicateCheckResult(
                 is_duplicate=True,
                 existing_record=existing,

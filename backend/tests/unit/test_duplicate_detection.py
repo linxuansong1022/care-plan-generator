@@ -177,6 +177,7 @@ class TestPatientDuplicateDetector:
         mock_patient.mrn = "123456"
         mock_patient.first_name = "John"
         mock_patient.last_name = "Doe"
+        mock_patient.date_of_birth = None
 
         with patch("apps.orders.services.Patient.objects") as mock_objects:
             mock_objects.get.return_value = mock_patient
@@ -190,6 +191,114 @@ class TestPatientDuplicateDetector:
             assert result.is_duplicate is True
             assert result.warnings[0].code == "PATIENT_NAME_MISMATCH"
             assert result.warnings[0].action_required is True
+
+    def test_same_mrn_different_dob_warns(self):
+        """Same MRN + different DOB should warn."""
+        from datetime import date
+
+        mock_patient = MagicMock()
+        mock_patient.mrn = "123456"
+        mock_patient.first_name = "John"
+        mock_patient.last_name = "Doe"
+        mock_patient.date_of_birth = date(1990, 1, 15)
+
+        with patch("apps.orders.services.Patient.objects") as mock_objects:
+            mock_objects.get.return_value = mock_patient
+
+            result = PatientDuplicateDetector.check(
+                mrn="123456",
+                first_name="John",
+                last_name="Doe",
+                date_of_birth=date(1985, 6, 20),  # Different DOB
+            )
+
+            assert result.is_duplicate is True
+            assert result.warnings[0].code == "PATIENT_DOB_MISMATCH"
+            assert result.warnings[0].action_required is True
+
+    def test_same_mrn_different_name_and_dob_warns(self):
+        """Same MRN + different name AND DOB should warn with combined code."""
+        from datetime import date
+
+        mock_patient = MagicMock()
+        mock_patient.mrn = "123456"
+        mock_patient.first_name = "John"
+        mock_patient.last_name = "Doe"
+        mock_patient.date_of_birth = date(1990, 1, 15)
+
+        with patch("apps.orders.services.Patient.objects") as mock_objects:
+            mock_objects.get.return_value = mock_patient
+
+            result = PatientDuplicateDetector.check(
+                mrn="123456",
+                first_name="Jane",  # Different name
+                last_name="Smith",  # Different name
+                date_of_birth=date(1985, 6, 20),  # Different DOB
+            )
+
+            assert result.is_duplicate is True
+            assert result.warnings[0].code == "PATIENT_DATA_MISMATCH"
+            assert result.warnings[0].action_required is True
+
+    def test_same_name_dob_different_mrn_warns(self):
+        """Same fn+ln+dob but different MRN should warn (potential duplicate)."""
+        from datetime import date
+        from apps.patients.models import Patient
+
+        mock_existing_patient = MagicMock()
+        mock_existing_patient.mrn = "999999"
+        mock_existing_patient.first_name = "John"
+        mock_existing_patient.last_name = "Doe"
+        mock_existing_patient.date_of_birth = date(1990, 1, 15)
+
+        with patch("apps.orders.services.Patient.objects") as mock_objects:
+            # MRN not found
+            mock_objects.get.side_effect = Patient.DoesNotExist
+            # But same name+dob exists with different MRN
+            mock_objects.filter.return_value.exclude.return_value.first.return_value = mock_existing_patient
+
+            result = PatientDuplicateDetector.check(
+                mrn="123456",  # Different MRN
+                first_name="John",
+                last_name="Doe",
+                date_of_birth=date(1990, 1, 15),  # Same DOB
+            )
+
+            assert result.is_potential_duplicate is True
+            assert result.warnings[0].code == "PATIENT_POSSIBLE_DUPLICATE"
+            assert result.warnings[0].action_required is True
+
+    def test_no_match_creates_new_patient(self):
+        """No matching MRN or name+dob should allow creating new patient."""
+        from datetime import date
+        from apps.patients.models import Patient
+
+        with patch("apps.orders.services.Patient.objects") as mock_objects:
+            # MRN not found
+            mock_objects.get.side_effect = Patient.DoesNotExist
+
+            # Mock for name+dob check (first filter call)
+            mock_name_dob_filter = MagicMock()
+            mock_name_dob_filter.exclude.return_value.first.return_value = None
+
+            # Mock for similar name check (second filter call)
+            mock_similar_name_filter = MagicMock()
+            mock_similar_name_filter.exclude.return_value.__getitem__.return_value.exists.return_value = False
+
+            # Return different mocks for each filter call
+            mock_objects.filter.side_effect = [mock_name_dob_filter, mock_similar_name_filter]
+
+            result = PatientDuplicateDetector.check(
+                mrn="123456",
+                first_name="John",
+                last_name="Doe",
+                date_of_birth=date(1990, 1, 15),
+            )
+
+            assert result.is_duplicate is False
+            assert result.is_potential_duplicate is False
+            assert result.should_block is False
+            assert len(result.warnings) == 0
 
 
 class TestCarePlanPerMedication:
