@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom'
-import { FileText, Loader2 } from 'lucide-react'
+import { Download, FileText, Loader2 } from 'lucide-react'
 
 import { useOrders } from '@/hooks/useOrders'
+import { exportService } from '@/services/orderService'
 import { formatDateTime, getStatusColor } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 
@@ -32,12 +33,21 @@ export function OrdersPage() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Orders</h1>
-        <Link
-          to="/"
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-        >
-          New Order
-        </Link>
+        <div className="flex gap-3">
+          <button
+            onClick={() => exportService.downloadExport()}
+            className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+          >
+            <Download className="h-4 w-4" />
+            Export CSV
+          </button>
+          <Link
+            to="/"
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+          >
+            New Order
+          </Link>
+        </div>
       </div>
 
       {orders.length === 0 ? (

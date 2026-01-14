@@ -32,7 +32,7 @@ class ReportService:
     ) -> tuple:
         """
         Export orders report.
-        
+
         Returns:
             Tuple of (file_bytes, filename, content_type)
         """
@@ -40,7 +40,7 @@ class ReportService:
         queryset = Order.objects.select_related(
             "patient", "provider"
         ).prefetch_related("care_plan")
-        
+
         if start_date:
             queryset = queryset.filter(created_at__date__gte=start_date)
         if end_date:
@@ -49,9 +49,9 @@ class ReportService:
             queryset = queryset.filter(status=status)
         if provider_npi:
             queryset = queryset.filter(provider__npi=provider_npi)
-        
+
         queryset = queryset.order_by("-created_at")
-        
+
         # Prepare data
         headers = [
             "Order ID",
@@ -66,7 +66,7 @@ class ReportService:
             "Care Plan Generated",
             "Care Plan Date",
         ]
-        
+
         rows = []
         for order in queryset:
             has_care_plan = hasattr(order, "care_plan") and order.care_plan is not None
@@ -83,9 +83,9 @@ class ReportService:
                 "Yes" if has_care_plan else "No",
                 order.care_plan.generated_at.strftime("%Y-%m-%d %H:%M") if has_care_plan else "",
             ])
-        
+
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        
+
         if format == "csv":
             return (
                 self._generate_csv(headers, rows),
@@ -98,6 +98,80 @@ class ReportService:
                 f"orders_export_{timestamp}.xlsx",
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             )
+
+    def export_all_orders_with_care_plans(self) -> tuple:
+        """
+        Export all orders with care plan content for pharma reporting.
+
+        CSV includes:
+        - order_id, order_date
+        - patient_mrn, patient_first_name, patient_last_name, patient_date_of_birth
+        - provider_npi, provider_name
+        - medication_name, primary_diagnosis_code
+        - care_plan_status, care_plan_content
+
+        Returns:
+            Tuple of (file_bytes, filename, content_type)
+        """
+        queryset = Order.objects.select_related(
+            "patient", "provider"
+        ).prefetch_related("care_plan").order_by("-created_at")
+
+        headers = [
+            "order_id",
+            "order_date",
+            "patient_mrn",
+            "patient_first_name",
+            "patient_last_name",
+            "patient_date_of_birth",
+            "provider_npi",
+            "provider_name",
+            "medication_name",
+            "primary_diagnosis_code",
+            "care_plan_status",
+            "care_plan_content",
+        ]
+
+        rows = []
+        for order in queryset:
+            has_care_plan = hasattr(order, "care_plan") and order.care_plan is not None
+
+            # Determine care plan status
+            if has_care_plan:
+                care_plan_status = "completed"
+                care_plan_content = order.care_plan.content or ""
+            elif order.status == "failed":
+                care_plan_status = "failed"
+                care_plan_content = ""
+            elif order.status == "processing":
+                care_plan_status = "processing"
+                care_plan_content = ""
+            else:
+                care_plan_status = "pending"
+                care_plan_content = ""
+
+            rows.append([
+                str(order.id),
+                order.created_at.strftime("%Y-%m-%d"),
+                order.patient.mrn,
+                order.patient.first_name,
+                order.patient.last_name,
+                str(order.patient.date_of_birth) if order.patient.date_of_birth else "",
+                order.provider.npi,
+                order.provider.name,
+                order.medication_name,
+                order.patient.primary_diagnosis_code,
+                care_plan_status,
+                care_plan_content,
+            ])
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        return (
+            self._generate_csv(headers, rows),
+            f"orders_care_plans_export_{timestamp}.csv",
+            "text/csv",
+        )
     
     def export_provider_report(
         self,
