@@ -306,10 +306,10 @@ See `.env.example` for all available settings.
 │   (React)   │     │   REST API  │     │             │
 └─────────────┘     └──────┬──────┘     └──────▲──────┘
                            │                   │
-                           │ queue task        │ read/write
-                           ▼                   │
+                           │ queue task        │ read order /
+                           ▼                   │ write care plan
                     ┌─────────────┐     ┌──────┴──────┐     ┌─────────────┐
-                    │    Redis    │────▶│   Celery    │────▶│    LLM      │
+                    │    Redis    │────▶│   Celery    │◀───▶│    LLM      │
                     │   (Queue)   │     │   Worker    │     │  (Claude/   │
                     └─────────────┘     └─────────────┘     │   OpenAI)   │
                                                             └─────────────┘
@@ -317,9 +317,10 @@ See `.env.example` for all available settings.
 
 **Data Flow:**
 1. Django API saves order to PostgreSQL, then queues task ID to Redis
-2. Celery Worker picks up task from Redis
-3. Worker reads order data directly from PostgreSQL (not from API)
-4. Worker calls LLM and writes care plan back to PostgreSQL
+2. Celery Worker picks up task ID from Redis
+3. Worker reads order data from PostgreSQL
+4. Worker sends prompt to LLM, receives generated care plan
+5. Worker writes care plan back to PostgreSQL
 
 ## Workflow
 
