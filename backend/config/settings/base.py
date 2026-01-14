@@ -59,6 +59,7 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 MIDDLEWARE = [
     "django_prometheus.middleware.PrometheusBeforeMiddleware",  # Must be first
+    "apps.core.middleware.RequestLoggingMiddleware",  # Custom request logging
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "corsheaders.middleware.CorsMiddleware",
@@ -152,7 +153,7 @@ AWS_S3_BUCKET_NAME = env("AWS_S3_BUCKET_NAME", default="")
 LLM_PROVIDER = env("LLM_PROVIDER", default="claude")  # claude or openai
 ANTHROPIC_API_KEY = env("ANTHROPIC_API_KEY", default="")
 OPENAI_API_KEY = env("OPENAI_API_KEY", default="")
-LLM_MODEL = env("LLM_MODEL", default="claude-3-sonnet-20240229")
+LLM_MODEL = env("LLM_MODEL", default="claude-sonnet-4-20250514")
 LLM_MAX_TOKENS = env.int("LLM_MAX_TOKENS", default=4096)
 LLM_TEMPERATURE = env.float("LLM_TEMPERATURE", default=0.3)
 
@@ -201,6 +202,24 @@ LOGGING = {
     },
     "loggers": {
         "django": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        # Suppress default Django request logs (we use custom middleware)
+        "django.request": {
+            "handlers": ["console"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+        # Suppress default Django server logs (replaced by custom middleware)
+        "django.server": {
+            "handlers": ["console"],
+            "level": "WARNING",
+            "propagate": False,
+        },
+        # Custom request logging middleware
+        "request": {
             "handlers": ["console"],
             "level": "INFO",
             "propagate": False,
