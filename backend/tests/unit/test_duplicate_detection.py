@@ -147,6 +147,26 @@ class TestProviderDuplicateDetector:
             assert result.should_block is True
             assert result.warnings[0].code == "PROVIDER_NPI_CONFLICT"
 
+    def test_new_npi_creates_new_provider(self):
+        """NPI not found should allow creating new provider."""
+        from apps.providers.models import Provider
+
+        with patch("apps.orders.services.Provider.objects") as mock_objects:
+            # NPI not found
+            mock_objects.get.side_effect = Provider.DoesNotExist
+            # No similar names
+            mock_objects.annotate.return_value.filter.return_value.exclude.return_value.__getitem__.return_value.exists.return_value = False
+
+            result = ProviderDuplicateDetector.check(
+                npi="9999999999",
+                name="Dr. New Provider",
+            )
+
+            assert result.is_duplicate is False
+            assert result.is_potential_duplicate is False
+            assert result.should_block is False
+            assert len(result.warnings) == 0
+
 
 class TestPatientDuplicateDetector:
     """Tests for Patient duplicate detection."""
