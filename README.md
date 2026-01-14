@@ -61,37 +61,6 @@ That's it! Both backend and frontend will be running via Docker.
 | API | http://localhost:8000/api/v1/ |
 | Admin | http://localhost:8000/admin/ |
 
-### Manual Setup (Alternative)
-
-```bash
-# Clone repository
-cd care-plan-generator/backend
-
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install poetry
-poetry install
-
-# Copy environment file
-cp .env.example .env
-# Edit .env with your settings
-
-# Run migrations
-python manage.py migrate
-
-# Create superuser
-python manage.py createsuperuser
-
-# Start development server
-python manage.py runserver
-
-# In another terminal, start Celery worker
-celery -A config worker -l info
-```
-
 ## API Endpoints
 
 ### Orders
@@ -154,19 +123,19 @@ GET /api/v1/patients/{id}/history/
 
 ```bash
 # Run all tests
-pytest
+docker-compose exec backend pytest
 
 # Run with coverage
-pytest --cov=apps --cov-report=html
+docker-compose exec backend pytest --cov=apps --cov-report=html
 
 # Run specific test file
-pytest tests/unit/test_validators.py
+docker-compose exec backend pytest tests/unit/test_validators.py
 
 # Run only unit tests
-pytest tests/unit/
+docker-compose exec backend pytest tests/unit/
 
 # Run only integration tests
-pytest tests/integration/
+docker-compose exec backend pytest tests/integration/
 ```
 
 ## Validation Rules
