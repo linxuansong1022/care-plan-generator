@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from 'react-router-dom'
 import { AlertCircle, CheckCircle, Loader2, Info } from 'lucide-react'
 
-import { orderFormSchema, type OrderFormData, isValidNPI } from '@/lib/validators'
+import { orderFormSchema, type OrderFormData, isValidNPI } from '@/utils/validators'
 import { useCreateOrder } from '@/hooks/useOrders'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
