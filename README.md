@@ -142,7 +142,7 @@ docker-compose exec backend pytest tests/integration/
 
 | Field | Rule |
 |-------|------|
-| NPI | 10 digits, Luhn checksum with 80840 prefix |
+| NPI | Exactly 10 digits |
 | MRN | Exactly 6 digits |
 | ICD-10 | Format: Letter + 2 digits + optional decimal (e.g., G70.00) |
 
