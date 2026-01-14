@@ -11,7 +11,7 @@ import {
 
 import { useOrder, useCarePlanStatus, useCarePlan, useRegenerateCarePlan } from '@/hooks/useOrders'
 import { carePlanService } from '@/services/orderService'
-import { formatDateTime, getStatusColor, cn } from '@/lib/utils'
+import { formatDateTime, getStatusColor, cn } from '@/utils/utils'
 import { Button } from '@/components/ui/Button'
 
 export function OrderDetailPage() {

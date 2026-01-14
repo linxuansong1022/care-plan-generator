@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
 import { FileText, List, Plus } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn } from '@/utils/utils'
 
 interface LayoutProps {
   children: React.ReactNode

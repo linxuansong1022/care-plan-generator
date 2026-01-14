@@ -3,8 +3,8 @@ import { Download, FileText, Loader2 } from 'lucide-react'
 
 import { useOrders } from '@/hooks/useOrders'
 import { exportService } from '@/services/orderService'
-import { formatDateTime, getStatusColor } from '@/lib/utils'
-import { cn } from '@/lib/utils'
+import { formatDateTime, getStatusColor } from '@/utils/utils'
+import { cn } from '@/utils/utils'
 
 export function OrdersPage() {
   const { data, isLoading, isError, error } = useOrders()
