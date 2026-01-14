@@ -25,7 +25,7 @@ class TestOrderDuplicateDetector:
         mock_order.created_at = datetime.now()  # Same day
         mock_order.status = "completed"
 
-        with patch("apps.orders.services.Order.objects") as mock_objects:
+        with patch("apps.orders.duplicate_detection.Order.objects") as mock_objects:
             mock_objects.filter.return_value.order_by.return_value.first.return_value = mock_order
 
             result = OrderDuplicateDetector.check(
@@ -45,7 +45,7 @@ class TestOrderDuplicateDetector:
         mock_order.created_at = datetime.now() - timedelta(days=5)  # 5 days ago
         mock_order.status = "completed"
 
-        with patch("apps.orders.services.Order.objects") as mock_objects:
+        with patch("apps.orders.duplicate_detection.Order.objects") as mock_objects:
             mock_objects.filter.return_value.order_by.return_value.first.return_value = mock_order
 
             result = OrderDuplicateDetector.check(
@@ -65,7 +65,7 @@ class TestOrderDuplicateDetector:
         mock_order.created_at = datetime.now() - timedelta(days=5)
         mock_order.status = "completed"
 
-        with patch("apps.orders.services.Order.objects") as mock_objects:
+        with patch("apps.orders.duplicate_detection.Order.objects") as mock_objects:
             mock_objects.filter.return_value.order_by.return_value.first.return_value = mock_order
 
             result = OrderDuplicateDetector.check(
@@ -81,7 +81,7 @@ class TestOrderDuplicateDetector:
 
     def test_no_duplicate_returns_empty_result(self):
         """No duplicate orders should return empty result."""
-        with patch("apps.orders.services.Order.objects") as mock_objects:
+        with patch("apps.orders.duplicate_detection.Order.objects") as mock_objects:
             mock_objects.filter.return_value.order_by.return_value.first.return_value = None
 
             result = OrderDuplicateDetector.check(
@@ -116,7 +116,7 @@ class TestProviderDuplicateDetector:
         mock_provider.npi = "1234567893"
         mock_provider.name = "Dr. Jane Smith"
 
-        with patch("apps.orders.services.Provider.objects") as mock_objects:
+        with patch("apps.orders.duplicate_detection.Provider.objects") as mock_objects:
             mock_objects.get.return_value = mock_provider
 
             result = ProviderDuplicateDetector.check(
@@ -135,7 +135,7 @@ class TestProviderDuplicateDetector:
         mock_provider.npi = "1234567893"
         mock_provider.name = "Dr. Jane Smith"
 
-        with patch("apps.orders.services.Provider.objects") as mock_objects:
+        with patch("apps.orders.duplicate_detection.Provider.objects") as mock_objects:
             mock_objects.get.return_value = mock_provider
 
             result = ProviderDuplicateDetector.check(
@@ -151,7 +151,7 @@ class TestProviderDuplicateDetector:
         """NPI not found should allow creating new provider."""
         from apps.providers.models import Provider
 
-        with patch("apps.orders.services.Provider.objects") as mock_objects:
+        with patch("apps.orders.duplicate_detection.Provider.objects") as mock_objects:
             # NPI not found
             mock_objects.get.side_effect = Provider.DoesNotExist
             # No similar names
@@ -178,7 +178,7 @@ class TestPatientDuplicateDetector:
         mock_patient.first_name = "John"
         mock_patient.last_name = "Doe"
 
-        with patch("apps.orders.services.Patient.objects") as mock_objects:
+        with patch("apps.orders.duplicate_detection.Patient.objects") as mock_objects:
             mock_objects.get.return_value = mock_patient
 
             result = PatientDuplicateDetector.check(
@@ -199,7 +199,7 @@ class TestPatientDuplicateDetector:
         mock_patient.last_name = "Doe"
         mock_patient.date_of_birth = None
 
-        with patch("apps.orders.services.Patient.objects") as mock_objects:
+        with patch("apps.orders.duplicate_detection.Patient.objects") as mock_objects:
             mock_objects.get.return_value = mock_patient
 
             result = PatientDuplicateDetector.check(
@@ -222,7 +222,7 @@ class TestPatientDuplicateDetector:
         mock_patient.last_name = "Doe"
         mock_patient.date_of_birth = date(1990, 1, 15)
 
-        with patch("apps.orders.services.Patient.objects") as mock_objects:
+        with patch("apps.orders.duplicate_detection.Patient.objects") as mock_objects:
             mock_objects.get.return_value = mock_patient
 
             result = PatientDuplicateDetector.check(
@@ -246,7 +246,7 @@ class TestPatientDuplicateDetector:
         mock_patient.last_name = "Doe"
         mock_patient.date_of_birth = date(1990, 1, 15)
 
-        with patch("apps.orders.services.Patient.objects") as mock_objects:
+        with patch("apps.orders.duplicate_detection.Patient.objects") as mock_objects:
             mock_objects.get.return_value = mock_patient
 
             result = PatientDuplicateDetector.check(
@@ -271,7 +271,7 @@ class TestPatientDuplicateDetector:
         mock_existing_patient.last_name = "Doe"
         mock_existing_patient.date_of_birth = date(1990, 1, 15)
 
-        with patch("apps.orders.services.Patient.objects") as mock_objects:
+        with patch("apps.orders.duplicate_detection.Patient.objects") as mock_objects:
             # MRN not found
             mock_objects.get.side_effect = Patient.DoesNotExist
             # But same name+dob exists with different MRN
@@ -293,7 +293,7 @@ class TestPatientDuplicateDetector:
         from datetime import date
         from apps.patients.models import Patient
 
-        with patch("apps.orders.services.Patient.objects") as mock_objects:
+        with patch("apps.orders.duplicate_detection.Patient.objects") as mock_objects:
             # MRN not found
             mock_objects.get.side_effect = Patient.DoesNotExist
 
@@ -331,7 +331,7 @@ class TestCarePlanPerMedication:
         mock_order.created_at = datetime.now()
         mock_order.status = "completed"
 
-        with patch("apps.orders.services.Order.objects") as mock_objects:
+        with patch("apps.orders.duplicate_detection.Order.objects") as mock_objects:
             mock_objects.filter.return_value.order_by.return_value.first.return_value = mock_order
 
             result = OrderDuplicateDetector.check(
@@ -344,7 +344,7 @@ class TestCarePlanPerMedication:
 
     def test_different_medication_same_patient_same_day_allows(self):
         """Different medication for same patient on same day should allow."""
-        with patch("apps.orders.services.Order.objects") as mock_objects:
+        with patch("apps.orders.duplicate_detection.Order.objects") as mock_objects:
             # No existing order with this medication
             mock_objects.filter.return_value.order_by.return_value.first.return_value = None
 

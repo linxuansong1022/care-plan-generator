@@ -82,14 +82,13 @@ export const orderService = {
     const warnings = response.data.warnings || []
     const patientWarnings = response.data.patient_warnings || []
     const providerWarnings = response.data.provider_warnings || []
-    const allWarnings = [...warnings, ...patientWarnings, ...providerWarnings]
 
     return {
       order: response.data.order ? transformOrder(response.data.order) : undefined,
       warnings,
       patientWarnings,
       providerWarnings,
-      allWarnings,
+      allWarnings: warnings,  // warnings already contains all warnings
       isPotentialDuplicate: response.data.is_potential_duplicate || false,
       requiresConfirmation: response.data.requires_confirmation || false,
       isBlocked: response.data.is_blocked || false,
