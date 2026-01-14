@@ -8,4 +8,6 @@ from django.urls import include, path
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/v1/", include("apps.core.urls")),
+    # Prometheus metrics endpoint
+    path("", include("django_prometheus.urls")),
 ]
