@@ -46,3 +46,6 @@ line_length = 100
 DJANGO_SETTINGS_MODULE = "config.settings.test"
 python_files = ["test_*.py"]
 addopts = "-v --tb=short"
+markers = [
+    "integration: marks tests as integration tests (require real LLM API keys)",
+]
