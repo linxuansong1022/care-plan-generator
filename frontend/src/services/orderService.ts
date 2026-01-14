@@ -177,3 +177,21 @@ export const carePlanService = {
     return `${baseUrl}/care-plans/download/${orderId}/`
   },
 }
+
+export const exportService = {
+  /**
+   * Get export URL for all orders with care plans
+   */
+  getExportUrl(): string {
+    const baseUrl = import.meta.env.VITE_API_URL || '/api/v1'
+    return `${baseUrl}/export/`
+  },
+
+  /**
+   * Trigger CSV download
+   */
+  downloadExport(): void {
+    const url = this.getExportUrl()
+    window.open(url, '_blank')
+  },
+}

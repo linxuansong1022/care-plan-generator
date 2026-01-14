@@ -14,6 +14,35 @@ from .services import ReportService
 
 
 @api_view(["GET"])
+def export_all(request):
+    """
+    Export all orders with care plans for pharma reporting.
+
+    GET /api/v1/export/
+
+    Returns CSV with columns:
+    - order_id, order_date
+    - patient_mrn, patient_first_name, patient_last_name, patient_date_of_birth
+    - provider_npi, provider_name
+    - medication_name, primary_diagnosis_code
+    - care_plan_status, care_plan_content
+    """
+    try:
+        service = ReportService()
+        file_bytes, filename, content_type = service.export_all_orders_with_care_plans()
+
+        response = HttpResponse(file_bytes, content_type=content_type)
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        return response
+
+    except Exception as e:
+        return Response(
+            {"error": f"Export failed: {str(e)}"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+@api_view(["GET"])
 def export_orders(request):
     """
     Export orders report.
