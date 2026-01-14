@@ -29,7 +29,6 @@ A production-ready web application for specialty pharmacies to automatically gen
 ### Prerequisites
 
 - Docker & Docker Compose
-- Node.js 18+ (for frontend)
 
 ### Docker (Recommended)
 
@@ -42,7 +41,7 @@ cd larmar-care
 cp backend/.env.example backend/.env
 # Edit backend/.env with your ANTHROPIC_API_KEY or OPENAI_API_KEY
 
-# 3. Start all backend services (database migration runs automatically)
+# 3. Start all services (db, redis, backend, worker, frontend)
 docker-compose up -d
 
 # 4. (Optional) Create admin user
@@ -50,12 +49,9 @@ docker-compose exec backend python manage.py createsuperuser
 
 # 5. (Optional) Import mock data for testing
 docker-compose exec backend python manage.py seed_data
-
-# 6. Start frontend
-cd frontend
-npm install
-npm run dev
 ```
+
+That's it! Both backend and frontend will be running via Docker.
 
 ### Access the App
 
@@ -198,6 +194,90 @@ Key variables:
 - `CELERY_BROKER_URL`: Redis URL for Celery
 - `ANTHROPIC_API_KEY`: API key for Claude LLM
 - `LLM_PROVIDER`: `claude` or `openai`
+
+## Common Commands
+
+### Stop Services
+
+```bash
+# Stop all containers (keeps data)
+docker-compose down
+
+# Stop all containers and remove volumes (full cleanup, deletes database data)
+docker-compose down -v
+```
+
+### View Running Containers
+
+```bash
+# List running containers
+docker ps
+
+# List all containers (including stopped)
+docker ps -a
+
+# Force stop a specific container
+docker stop <container_id>
+```
+
+### Port Conflicts
+
+If you get a "port already in use" error:
+
+```bash
+# Check what's using port 5432 (PostgreSQL)
+lsof -i :5432
+
+# Check what's using port 6379 (Redis)
+lsof -i :6379
+
+# Check what's using port 8000 (Backend)
+lsof -i :8000
+
+# Kill the process using the port
+kill -9 <pid>
+```
+
+### Database Management
+
+```bash
+# Access PostgreSQL shell
+docker-compose exec db psql -U careplan -d careplan
+
+# View logs
+docker-compose logs -f db      # Database logs
+docker-compose logs -f backend # Backend logs
+docker-compose logs -f worker  # Celery worker logs
+
+# Restart a specific service
+docker-compose restart backend
+```
+
+### Local PostgreSQL vs Docker PostgreSQL
+
+If you have both local PostgreSQL and Docker PostgreSQL running, they may conflict on port 5432. Choose one approach:
+
+**Recommended: Use Docker only (cleaner, easier to manage)**
+
+```bash
+# 1. Stop local PostgreSQL
+brew services stop postgresql
+# Or kill the process directly
+kill <pid>
+
+# 2. Verify Docker PostgreSQL is running
+docker ps
+
+# 3. Restart Docker services if needed
+docker-compose down
+docker-compose up -d
+```
+
+**Quick fix: Kill all processes on port 5432**
+
+```bash
+lsof -ti :5432 | xargs kill -9
+```
 
 ## Project Structure
 
