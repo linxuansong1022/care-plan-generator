@@ -67,15 +67,13 @@ class OrderViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         """
         Create a new order with duplicate detection.
-        
+
         Flow:
         1. Validate input data
         2. Check for duplicates (provider, patient, order)
-        3. If blocking duplicate → return 409 error
-        4. If potential duplicate and not confirmed → return 409 with warnings
-        5. Create/get provider and patient
-        6. Create order
-        7. Queue care plan generation
+        3. If blocking duplicate → return 409 Conflict (cannot proceed)
+        4. If potential duplicate and not confirmed → return 200 with requires_confirmation=true
+        5. If confirmed or no duplicates → create order and return 201
         """
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -102,26 +100,36 @@ class OrderViewSet(viewsets.ModelViewSet):
         
         # Check if confirmation required
         if dup_result.requires_confirmation and not data.get("confirm_not_duplicate"):
-            # Return warnings without creating order
+            # Helper to serialize warning objects
+            def serialize_warning(w):
+                return {
+                    "code": w.code,
+                    "message": w.message,
+                    "action_required": w.action_required,
+                    "data": w.data,
+                }
+
+            # Return 200 with warnings - user can confirm and resubmit
             return Response(
                 {
                     "order": None,
-                    "warnings": [w.message for w in dup_result.all_warnings],
+                    "warnings": [serialize_warning(w) for w in dup_result.all_warnings],
                     "patient_warnings": [
-                        w.message for w in dup_result.patient_result.warnings if w.action_required
+                        serialize_warning(w) for w in dup_result.patient_result.warnings if w.action_required
                     ],
                     "provider_warnings": [
-                        w.message for w in dup_result.provider_result.warnings if w.action_required
+                        serialize_warning(w) for w in dup_result.provider_result.warnings if w.action_required
                     ],
                     "is_potential_duplicate": True,
                     "requires_confirmation": True,
+                    "is_blocked": False,
                     "duplicate_order_id": (
                         str(dup_result.order_result.existing_record.id)
                         if dup_result.order_result and dup_result.order_result.existing_record
                         else None
                     ),
                 },
-                status=status.HTTP_409_CONFLICT,
+                status=status.HTTP_200_OK,
             )
         
         # Create order with all entities
