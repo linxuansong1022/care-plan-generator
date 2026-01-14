@@ -3,7 +3,8 @@
     "allow": [
       "Bash(python -m pytest:*)",
       "Bash(docker-compose exec:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(docker compose exec:*)"
     ]
   }
 }
