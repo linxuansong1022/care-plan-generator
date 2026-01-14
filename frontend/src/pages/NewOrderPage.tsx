@@ -12,13 +12,7 @@ import { Textarea } from '@/components/ui/Textarea'
 import { Select } from '@/components/ui/Select'
 import { FormField } from '@/components/forms/FormField'
 import { DuplicateWarningModal } from '@/components/modals/DuplicateWarningModal'
-
-interface Warning {
-  code: string
-  message: string
-  action_required: boolean
-  data?: Record<string, any>
-}
+import type { Warning } from '@/types'
 
 export function NewOrderPage() {
   const navigate = useNavigate()
@@ -46,6 +40,7 @@ export function NewOrderPage() {
       providerName: '',
       medicationName: '',
       patientRecords: '',
+      // Note: medicationHistory is stored as array but displayed as string in textarea
     },
     mode: 'onBlur',
   })
@@ -244,6 +239,29 @@ export function NewOrderPage() {
               </div>
               <p className="text-xs text-gray-500 mt-1">
                 Format: Letter + 2 digits + optional decimal (e.g., G70.00, I10)
+              </p>
+            </FormField>
+
+            <FormField
+              label="Medication History"
+              error={errors.medicationHistory?.message}
+              className="md:col-span-2"
+            >
+              <Textarea
+                {...register('medicationHistory', {
+                  setValueAs: (v: string | string[]) => {
+                    if (Array.isArray(v)) return v
+                    return v ? v.split('\n').map(s => s.trim()).filter(Boolean) : []
+                  }
+                })}
+                placeholder="Enter one medication per line, e.g.:
+Prednisone 10mg daily
+Methotrexate 15mg weekly
+IVIG 30g monthly"
+                rows={4}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                One medication per line (include dosage and frequency if known)
               </p>
             </FormField>
           </div>

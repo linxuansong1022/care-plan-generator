@@ -77,14 +77,25 @@ export interface OrderCreateData {
   confirmNotDuplicate?: boolean
 }
 
+// Warning type from API
+export interface Warning {
+  code: string
+  message: string
+  action_required: boolean
+  data?: Record<string, unknown>
+}
+
 // API response types
 export interface OrderResponse {
   order?: Order
-  warnings: string[]
-  patientWarnings: string[]
-  providerWarnings: string[]
+  warnings: Warning[]
+  patientWarnings: Warning[]
+  providerWarnings: Warning[]
+  allWarnings?: Warning[]
   isPotentialDuplicate: boolean
   requiresConfirmation: boolean
+  isBlocked?: boolean
+  blockingReason?: string
   duplicateOrderId?: string
 }
 
