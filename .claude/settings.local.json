@@ -12,7 +12,22 @@
       "Bash(source .venv/bin/activate)",
       "Bash(source:*)",
       "Bash(/usr/bin/python3 -m pytest:*)",
-      "Bash(docker-compose restart:*)"
+      "Bash(docker-compose restart:*)",
+      "Bash(docker ps:*)",
+      "Bash(docker-compose down:*)",
+      "Bash(docker-compose up:*)",
+      "Bash(pkill:*)",
+      "Bash(xargs kill:*)",
+      "Bash(docker logs:*)",
+      "Bash(curl:*)",
+      "Bash(python3:*)",
+      "Bash(docker-compose build:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nAdd observability stack: Prometheus, Grafana, Loki, Promtail\n\n- Add django-prometheus for metrics endpoint \\(/metrics\\)\n- Add structlog for structured JSON logging\n- Configure Prometheus to scrape Django metrics\n- Configure Loki for log aggregation\n- Add Promtail to collect Docker container logs\n- Update ALLOWED_HOSTS for internal Docker networking\n- Fix Loki config for latest version compatibility\n\nObservability endpoints:\n- Prometheus: http://localhost:9090\n- Grafana: http://localhost:3001 \\(admin/admin\\)\n- Django metrics: http://localhost:8000/metrics\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git push)",
+      "Bash(docker-compose logs:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ]
   }
 }

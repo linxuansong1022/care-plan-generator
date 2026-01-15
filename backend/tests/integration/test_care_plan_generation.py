@@ -9,8 +9,9 @@ import pytest
 import re
 from django.conf import settings
 
-from apps.care_plans.prompts import CARE_PLAN_SYSTEM_PROMPT, build_care_plan_prompt
+from apps.care_plans.prompts import build_care_plan_prompt
 from apps.care_plans.llm_service import get_llm_service, ClaudeLLMService, OpenAILLMService
+from apps.care_plans.skeleton_analyzer import get_dynamic_skeleton, build_dynamic_system_prompt
 
 
 # Example patient records from the specification
@@ -182,9 +183,13 @@ class TestCarePlanOutputStructure:
         if not isinstance(llm_service, (ClaudeLLMService, OpenAILLMService)):
             pytest.skip("No real LLM API key configured, skipping integration test")
 
+        # Get dynamic system prompt (based on recent care plans or default)
+        skeleton = get_dynamic_skeleton(use_llm=False)
+        system_prompt = build_dynamic_system_prompt(skeleton)
+
         response = llm_service.generate(
             prompt=prompt,
-            system_prompt=CARE_PLAN_SYSTEM_PROMPT,
+            system_prompt=system_prompt,
         )
 
         # Validate the response
@@ -242,9 +247,13 @@ class TestCarePlanOutputStructure:
         if not isinstance(llm_service, (ClaudeLLMService, OpenAILLMService)):
             pytest.skip("No real LLM API key configured")
 
+        # Get dynamic system prompt (based on recent care plans or default)
+        skeleton = get_dynamic_skeleton(use_llm=False)
+        system_prompt = build_dynamic_system_prompt(skeleton)
+
         response = llm_service.generate(
             prompt=prompt,
-            system_prompt=CARE_PLAN_SYSTEM_PROMPT,
+            system_prompt=system_prompt,
         )
 
         content_lower = response.content.lower()

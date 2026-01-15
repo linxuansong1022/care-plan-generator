@@ -66,13 +66,25 @@ class CarePlan(models.Model):
         null=True,
         help_text="Time taken to generate in milliseconds",
     )
-    
+
     generated_at = models.DateTimeField(
         blank=True,
         null=True,
         help_text="When the LLM completed generation",
     )
-    
+
+    # Track if this was manually uploaded vs LLM-generated
+    is_uploaded = models.BooleanField(
+        default=False,
+        help_text="True if care plan was manually uploaded, False if LLM-generated",
+    )
+
+    uploaded_at = models.DateTimeField(
+        blank=True,
+        null=True,
+        help_text="When the care plan was manually uploaded",
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
