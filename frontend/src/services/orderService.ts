@@ -165,6 +165,8 @@ export const carePlanService = {
       filePath: response.data.file_path,
       llmModel: response.data.llm_model,
       generatedAt: response.data.generated_at,
+      isUploaded: response.data.is_uploaded,
+      uploadedAt: response.data.uploaded_at,
     }
   },
 
@@ -174,6 +176,44 @@ export const carePlanService = {
   getDownloadUrl(orderId: string): string {
     const baseUrl = import.meta.env.VITE_API_URL || '/api/v1'
     return `${baseUrl}/care-plans/download/${orderId}/`
+  },
+
+  /**
+   * Upload a custom care plan
+   */
+  async uploadCarePlan(orderId: string, content: string): Promise<CarePlan> {
+    const response = await api.post(`/care-plans/upload/${orderId}/`, { content })
+    return {
+      id: response.data.care_plan.id,
+      orderId: response.data.care_plan.order_id,
+      content: response.data.care_plan.content,
+      filePath: response.data.care_plan.file_path,
+      llmModel: response.data.care_plan.llm_model,
+      generatedAt: response.data.care_plan.generated_at,
+      isUploaded: response.data.care_plan.is_uploaded,
+      uploadedAt: response.data.care_plan.uploaded_at,
+    }
+  },
+
+  /**
+   * Upload a care plan file
+   */
+  async uploadCarePlanFile(orderId: string, file: File): Promise<CarePlan> {
+    const formData = new FormData()
+    formData.append('file', file)
+    const response = await api.post(`/care-plans/upload/${orderId}/`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return {
+      id: response.data.care_plan.id,
+      orderId: response.data.care_plan.order_id,
+      content: response.data.care_plan.content,
+      filePath: response.data.care_plan.file_path,
+      llmModel: response.data.care_plan.llm_model,
+      generatedAt: response.data.care_plan.generated_at,
+      isUploaded: response.data.care_plan.is_uploaded,
+      uploadedAt: response.data.care_plan.uploaded_at,
+    }
   },
 }
 

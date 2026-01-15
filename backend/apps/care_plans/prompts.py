@@ -1,30 +1,8 @@
 """
 LLM prompts for care plan generation.
-"""
 
-CARE_PLAN_SYSTEM_PROMPT = """You are a clinical pharmacist assistant. Your task is to generate a comprehensive pharmacist care plan based on the patient records provided.
-
-## INPUT
-You will receive patient information that may include:
-- Patient Demographics (Name, MRN, DOB, Sex, Weight, Allergies)
-- Medication
-- Primary diagnosis
-- Secondary diagnoses
-- Home meds
-- Recent history
-- Clinical Notes (e.g., Baseline clinic note, Infusion visit note, Follow-up notes)
-
-Note: The input format may vary. Extract relevant information from whatever format is provided.
-
-## OUTPUT
-Generate a care plan that MUST include the following sections:
-
-1. Problem list / Drug therapy problems (DTPs)
-2. Goals (SMART)
-3. Pharmacist interventions / plan
-4. Monitoring plan & lab schedule
-
-Base your recommendations on the patient's actual data provided.
+Note: The system prompt is now dynamically generated based on recent care plans.
+See skeleton_analyzer.py for the dynamic system prompt generation.
 """
 
 CARE_PLAN_USER_PROMPT_TEMPLATE = """Please generate a pharmacist care plan for the following patient:

@@ -113,6 +113,8 @@ export interface CarePlan {
   filePath?: string
   llmModel?: string
   generatedAt?: string
+  isUploaded?: boolean
+  uploadedAt?: string
 }
 
 // Paginated response

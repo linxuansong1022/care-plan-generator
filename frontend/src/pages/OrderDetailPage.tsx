@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -7,19 +8,22 @@ import {
   AlertCircle,
   CheckCircle,
   Clock,
+  Upload,
 } from 'lucide-react'
 
 import { useOrder, useCarePlanStatus, useCarePlan, useRegenerateCarePlan } from '@/hooks/useOrders'
 import { carePlanService } from '@/services/orderService'
 import { formatDateTime, getStatusColor, cn } from '@/utils/utils'
 import { Button } from '@/components/ui/Button'
+import { UploadCarePlanModal } from '@/components/modals/UploadCarePlanModal'
 
 export function OrderDetailPage() {
   const { id } = useParams<{ id: string }>()
-  const { data: order, isLoading: orderLoading } = useOrder(id!)
-  const { data: status } = useCarePlanStatus(id!)
-  const { data: carePlan, isLoading: carePlanLoading } = useCarePlan(id!)
+  const { data: order, isLoading: orderLoading, refetch: refetchOrder } = useOrder(id!)
+  const { data: status, refetch: refetchStatus } = useCarePlanStatus(id!)
+  const { data: carePlan, isLoading: carePlanLoading, refetch: refetchCarePlan } = useCarePlan(id!)
   const regenerate = useRegenerateCarePlan()
+  const [showUploadModal, setShowUploadModal] = useState(false)
 
   if (orderLoading) {
     return (
@@ -43,6 +47,12 @@ export function OrderDetailPage() {
 
   const handleRegenerate = () => {
     regenerate.mutate(id!)
+  }
+
+  const handleUploadSuccess = () => {
+    refetchOrder()
+    refetchStatus()
+    refetchCarePlan()
   }
 
   return (
@@ -152,9 +162,16 @@ export function OrderDetailPage() {
             <div className="space-y-4">
               <div className="flex items-center gap-3 text-green-600">
                 <CheckCircle className="h-5 w-5" />
-                <span>Care plan ready</span>
+                <span>
+                  Care plan ready
+                  {carePlan?.isUploaded && (
+                    <span className="ml-2 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
+                      Uploaded
+                    </span>
+                  )}
+                </span>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Button onClick={handleDownload}>
                   <Download className="mr-2 h-4 w-4" />
                   Download
@@ -172,6 +189,13 @@ export function OrderDetailPage() {
                   />
                   Regenerate
                 </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowUploadModal(true)}
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  Upload New
+                </Button>
               </div>
             </div>
           )}
@@ -185,18 +209,27 @@ export function OrderDetailPage() {
               {status.errorMessage && (
                 <p className="text-sm text-gray-500">{status.errorMessage}</p>
               )}
-              <Button
-                onClick={handleRegenerate}
-                disabled={regenerate.isPending}
-              >
-                <RefreshCw
-                  className={cn(
-                    'mr-2 h-4 w-4',
-                    regenerate.isPending && 'animate-spin'
-                  )}
-                />
-                Retry
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleRegenerate}
+                  disabled={regenerate.isPending}
+                >
+                  <RefreshCw
+                    className={cn(
+                      'mr-2 h-4 w-4',
+                      regenerate.isPending && 'animate-spin'
+                    )}
+                  />
+                  Retry
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowUploadModal(true)}
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  Upload Manual
+                </Button>
+              </div>
             </div>
           )}
         </div>
@@ -205,9 +238,22 @@ export function OrderDetailPage() {
       {/* Care Plan Content */}
       {carePlan && !carePlanLoading && (
         <div className="mt-6 bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold mb-4 text-blue-700">
-            Care Plan Content
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-blue-700">
+              Care Plan Content
+            </h2>
+            {carePlan.isUploaded && carePlan.uploadedAt && (
+              <span className="text-sm text-gray-500">
+                Uploaded: {formatDateTime(carePlan.uploadedAt)}
+              </span>
+            )}
+            {!carePlan.isUploaded && carePlan.generatedAt && (
+              <span className="text-sm text-gray-500">
+                Generated: {formatDateTime(carePlan.generatedAt)}
+                {carePlan.llmModel && ` (${carePlan.llmModel})`}
+              </span>
+            )}
+          </div>
           <div className="bg-gray-50 rounded-lg p-4 overflow-auto max-h-[600px]">
             <pre className="text-sm whitespace-pre-wrap font-mono">
               {carePlan.content}
@@ -215,6 +261,14 @@ export function OrderDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Upload Modal */}
+      <UploadCarePlanModal
+        orderId={id!}
+        isOpen={showUploadModal}
+        onClose={() => setShowUploadModal(false)}
+        onSuccess={handleUploadSuccess}
+      />
     </div>
   )
 }

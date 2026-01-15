@@ -14,7 +14,8 @@ from apps.orders.models import Order
 
 from .llm_service import get_llm_service
 from .models import CarePlan
-from .prompts import CARE_PLAN_SYSTEM_PROMPT, build_care_plan_prompt
+from .prompts import build_care_plan_prompt
+from .skeleton_analyzer import get_dynamic_skeleton, build_dynamic_system_prompt
 
 logger = structlog.get_logger(__name__)
 
@@ -125,17 +126,51 @@ def generate_care_plan(self, order_id: str):
             patient_records=order.patient_records,
         )
 
-        # Generate with LLM
+        # Get LLM service
+        llm_service = get_llm_service()
+
+        # Get dynamic skeleton from recent care plans
+        logger.debug("skeleton_analysis_starting", order_id=order_id)
+        skeleton = get_dynamic_skeleton(use_llm=False)  # Use simple extraction (faster)
+        system_prompt = build_dynamic_system_prompt(skeleton)
+
+        # === DEBUG: Log prompts for testing ===
+        # Using WARNING level to ensure visibility in logs
+        logger.warning(
+            "DEBUG_SKELETON",
+            order_id=order_id,
+            medication=order.medication_name,
+            patient=f"{patient.first_name} {patient.last_name}",
+            mrn=patient.mrn,
+            skeleton=skeleton,
+        )
+
+        logger.warning(
+            "DEBUG_SYSTEM_PROMPT",
+            order_id=order_id,
+            system_prompt=system_prompt,
+        )
+
+        logger.warning(
+            "DEBUG_USER_PROMPT",
+            order_id=order_id,
+            user_prompt=prompt[:1500],  # First 1500 chars
+            total_length=len(prompt),
+        )
+
         logger.info(
             "llm_generation_started",
             order_id=order_id,
             llm_provider=settings.LLM_PROVIDER,
+            skeleton_sections=skeleton.count("\n"),
+            system_prompt_length=len(system_prompt),
+            user_prompt_length=len(prompt),
         )
 
-        llm_service = get_llm_service()
+        # Generate with LLM using dynamic system prompt
         response = llm_service.generate(
             prompt=prompt,
-            system_prompt=CARE_PLAN_SYSTEM_PROMPT,
+            system_prompt=system_prompt,
         )
 
         # Record LLM token metrics

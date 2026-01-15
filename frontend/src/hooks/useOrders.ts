@@ -90,3 +90,37 @@ export function useCarePlan(orderId: string) {
     enabled: !!orderId,
   })
 }
+
+/**
+ * Hook for uploading a custom care plan
+ */
+export function useUploadCarePlan() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ orderId, content }: { orderId: string; content: string }) =>
+      carePlanService.uploadCarePlan(orderId, content),
+    onSuccess: (_, { orderId }) => {
+      queryClient.invalidateQueries({ queryKey: ['orders', orderId] })
+      queryClient.invalidateQueries({ queryKey: ['carePlanStatus', orderId] })
+      queryClient.invalidateQueries({ queryKey: ['carePlan', orderId] })
+    },
+  })
+}
+
+/**
+ * Hook for uploading a care plan file
+ */
+export function useUploadCarePlanFile() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ orderId, file }: { orderId: string; file: File }) =>
+      carePlanService.uploadCarePlanFile(orderId, file),
+    onSuccess: (_, { orderId }) => {
+      queryClient.invalidateQueries({ queryKey: ['orders', orderId] })
+      queryClient.invalidateQueries({ queryKey: ['carePlanStatus', orderId] })
+      queryClient.invalidateQueries({ queryKey: ['carePlan', orderId] })
+    },
+  })
+}
