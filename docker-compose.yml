@@ -1,0 +1,93 @@
+# docker-compose.yml
+# 这个文件定义了整个项目需要的所有"容器"（你可以理解为独立的小电脑）
+# 运行 `docker compose up --build` 就能一次性把所有东西启动起来
+
+services:
+  # ============================================================
+  # 1. PostgreSQL 数据库
+  # ============================================================
+  db:
+    image: postgres:16 # 用官方 PostgreSQL 16 镜像
+    environment:
+      POSTGRES_DB: careplan # 数据库名
+      POSTGRES_USER: postgres # 用户名
+      POSTGRES_PASSWORD: postgres # 密码（MVP 阶段用简单密码，生产环境绝对不能这样）
+    ports:
+      - "5434:5432" # 映射端口，改为 5434 避免已被占用的 5432
+    volumes:
+      - pgdata:/var/lib/postgresql/data # 数据持久化，容器重启数据不丢
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================
+  # 2. Django 后端
+  # ============================================================
+  backend:
+    build: ./backend # 从 backend 文件夹构建镜像
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
+    # 先执行数据库迁移（建表），再启动开发服务器
+    volumes:
+      - ./backend:/app # 把本地代码映射进容器，改代码不用重新 build
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/careplan
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY} # 从 .env 文件读取
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy # 等数据库 ready 了再启动后端
+      redis:
+        condition: service_healthy # 等 redis ready 了再启动后端
+
+  # ============================================================
+  # 4. Redis 消息队列
+  # ============================================================
+  redis:
+    image: redis:7-alpine # alpine 是精简版镜像，体积小
+    ports:
+      - "6380:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================
+  # 3. React 前端
+  # ============================================================
+  frontend:
+    build: ./frontend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules # 排除 node_modules，避免本地和容器冲突
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000 # 告诉前端，后端在哪里
+
+  # ============================================================
+  # 5. Celery Worker
+  # ============================================================
+  celery-worker:
+    build: ./backend
+    command: celery -A careplan_backend worker --loglevel=info
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - db
+      - redis
+    environment:
+      - DJANGO_SETTINGS_MODULE=careplan_backend.settings
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/careplan
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - REDIS_URL=redis://redis:6379/0
+
+# 命名卷：Docker 管理的持久化存储
+volumes:
+  pgdata:
