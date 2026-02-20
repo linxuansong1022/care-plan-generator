@@ -1,6 +1,6 @@
 # backend/orders/views.py
 
-from google import genai
+import google.generativeai as genai
 from django.conf import settings
 from django.http import HttpResponse
 from django.db.models import Q
@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import Order
+from .models import CarePlan  
 from .serializers import OrderSerializer
 
 
@@ -17,11 +18,11 @@ def generate_care_plan(order):
     prompt = f"""You are a clinical pharmacist creating a care plan for a specialty pharmacy patient.
 
 Patient Information:
-- Name: {order.patient_first_name} {order.patient_last_name}
-- Date of Birth: {order.patient_dob}
-- MRN: {order.patient_mrn}
+- Name: {order.patient.first_name} {order.patient.last_name}
+- Date of Birth: {order.patient.dob}
+- MRN: {order.patient.mrn}
 
-Provider: {order.provider_name} (NPI: {order.provider_npi})
+Provider: {order.provider.name} (NPI: {order.provider.npi})
 
 Medication: {order.medication_name}
 Primary Diagnosis (ICD-10): {order.primary_diagnosis}
@@ -50,29 +51,18 @@ Please generate a comprehensive pharmaceutical care plan with EXACTLY these four
 Be specific and clinically relevant to the medication and diagnoses provided."""
 
     try:
-        # 配置 Google Gemini 客户端并调用 API
-        # 注意：如果是 Vertex AI 的 Key，SDK 会自动识别，前提是你的 Project 里启用了 API
-        PROJECT_ID = "cph-beer-map-dev"  # 👈 这里必须改！
-        LOCATION = "us-central1"      # 通常用这个
-        
-        client = genai.Client(
-            vertexai=True,
-            project=PROJECT_ID,
-            location=LOCATION,
-            # Vertex AI 通常不需要 API Key，而是通过 gcloud auth 认证
-            # 但如果你用了 API Key 方式连接 Vertex AI，也可以传
-            # api_key=settings.GOOGLE_API_KEY 
-        )
-        
-        response = client.models.generate_content(
-            model='gemini-2.0-flash',
-            contents=prompt,
-        )
+        # 使用 google.generativeai 库的正确写法
+        genai.configure(api_key=settings.GOOGLE_API_KEY)
+        model = genai.GenerativeModel('gemini-flash-latest')
+        response = model.generate_content(prompt)
         
         # 从响应中提取文本内容
         return response.text
-    except Exception:
-        # 异常可在日志中查看，或生产环境记录到监控系统
+    except Exception as e:
+        # 打印详细错误日志到终端
+        print(f"❌ Gemini Error: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 
@@ -97,9 +87,9 @@ class OrderListCreate(generics.ListCreateAPIView):
         search = self.request.query_params.get('search', '').strip()
         if search:
             queryset = queryset.filter(
-                Q(patient_first_name__icontains=search) |
-                Q(patient_last_name__icontains=search) |
-                Q(patient_mrn__icontains=search) |
+                Q(patient__first_name__icontains=search) |
+                Q(patient__last_name__icontains=search) |
+                Q(patient__mrn__icontains=search) |
                 Q(medication_name__icontains=search)
             )
         
@@ -115,8 +105,11 @@ class OrderListCreate(generics.ListCreateAPIView):
         care_plan_content = generate_care_plan(order)
 
         if care_plan_content:
-            order.care_plan_content = care_plan_content
             order.status = 'completed'
+            CarePlan.objects.create(
+                order=order,
+                content=care_plan_content
+            )
         else:
             order.status = 'failed'
         order.save()
@@ -137,14 +130,14 @@ class CarePlanView(APIView):
             order = Order.objects.get(pk=pk)
         except Order.DoesNotExist:
             return Response({'error': 'Order does not exist'}, status = status.HTTP_404_NOT_FOUND)
-        if order.status != 'completed' or not order.care_plan_content:
+        if order.status != 'completed' or not hasattr(order, 'care_plan'):
             return Response({'error': 'Care plan not available'}, status = status.HTTP_404_NOT_FOUND)
         return Response({
             'order_id':order.id,
             'status': order.status,
-            'patient_name':f"{order.patient_first_name} {order.patient_last_name}",
+            'patient_name':f"{order.patient.first_name} {order.patient.last_name}",
             'medication': order.medication_name,
-            'care_plan_content':order.care_plan_content,
+            'care_plan_content':order.care_plan.content,
             })
 
 class CarePlanDownload(APIView):
@@ -162,25 +155,25 @@ class CarePlanDownload(APIView):
         except Order.DoesNotExist:
             return Response({'error': 'Order not found'}, status=status.HTTP_404_NOT_FOUND)
         
-        if order.status != 'completed' or not order.care_plan_content:
+        if order.status != 'completed' or not hasattr(order, 'care_plan'):
             return Response({'error': 'Care plan not available'}, status=status.HTTP_404_NOT_FOUND)
         
         # 组装文件内容：头部信息 + care plan 正文
         file_content = f"""PHARMACEUTICAL CARE PLAN
 {'='*50}
-Patient: {order.patient_first_name} {order.patient_last_name}
-MRN: {order.patient_mrn}
-DOB: {order.patient_dob}
-Provider: {order.provider_name} (NPI: {order.provider_npi})
+Patient: {order.patient.first_name} {order.patient.last_name}
+MRN: {order.patient.mrn}
+DOB: {order.patient.dob}
+Provider: {order.provider.name} (NPI: {order.provider.npi})
 Medication: {order.medication_name}
 Primary Diagnosis: {order.primary_diagnosis}
 Generated: {order.created_at.strftime('%Y-%m-%d %H:%M')}
 {'='*50}
 
-{order.care_plan_content}
+{order.care_plan.content}
 """
         
-        filename = f"careplan_{order.patient_mrn}_{order.medication_name}_{order.order_date}.txt"
+        filename = f"careplan_{order.patient.mrn}_{order.medication_name}_{order.order_date}.txt"
         filename = filename.replace(' ', '_').replace('/', '_')
         
         response = HttpResponse(file_content, content_type='text/plain; charset=utf-8')
