@@ -1,0 +1,87 @@
+# worker.py
+
+import os
+import django
+
+
+# ---- 第 1 件事：初始化 Django 环境 ----
+# 为什么需要这个？因为 worker.py 是独立脚本，不是通过 manage.py 启动的
+# 如果不做这一步，你 import Order 的时候会报错
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'careplan_backend.settings')
+django.setup()
+
+import redis
+from django.conf import settings
+from orders.models import Order, CarePlan
+from orders.views import generate_care_plan
+
+# ---- 第 2 件事：连接 Redis ----
+redis_client = redis.Redis.from_url(settings.REDIS_URL)
+
+
+def process_order(order_id):
+    """
+    处理单个订单：调 LLM，存 CarePlan，更新 status
+    
+    你需要在这里做：
+    1. 从数据库查出 order
+    2. 把 status 改成 'processing'
+    3. 调用 generate_care_plan(order)
+    4. 成功 → 创建 CarePlan，status = 'completed'
+       失败 → status = 'failed'
+    """
+    # TODO: 你来写
+    try:
+        order = Order.objects.get(id = order_id)
+    except Order.DoesNotExist:
+        print(f"Order {order_id} not found")
+        return
+    try:
+        order.status = 'processing'
+        order.save()
+        content = generate_care_plan(order)
+        if content is None:
+            order.status = 'failed'
+            order.save()
+            return 
+        CarePlan.objects.create(
+            order = order,
+            content = content,
+        )
+        order.status = 'completed'
+        order.save()
+
+    except Exception as e:
+        print(f"Error processing order {order_id}: {e}")
+        order.status = 'failed'
+        order.save()
+    
+
+
+def run_worker():
+    """
+    无限循环，从 Redis 拉任务
+    
+    你需要在这里做：
+    1. 用 BRPOP 从 'careplan_queue' 取任务
+    2. 拿到 order_id
+    3. 调用 process_order(order_id)
+    """
+    print("🔄 Worker started, waiting for tasks...")
+    # TODO: 你来写
+    while True:
+        result = redis_client.brpop('careplan_queue', timeout = 0)
+        #这里有brpop而不是rpop，实现了Blocking I/O，中断
+        if result:
+           order_id = int(result[1])
+           process_order(order_id)
+        else:
+            print("No tasks in queue, waiting...")
+
+
+
+
+
+# ---- 第 3 件事：启动 worker ----
+if __name__ == '__main__':
+    run_worker()

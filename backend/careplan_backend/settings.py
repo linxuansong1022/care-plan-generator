@@ -111,3 +111,7 @@ GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY', '')
 # Redis 配置（Day 4：消息队列）
 # ============================================================
 REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
+
+# ---- Celery 配置 ----
+CELERY_BROKER_URL = REDIS_URL  # 复用你已有的 Redis 连接
+CELERY_RESULT_BACKEND = REDIS_URL

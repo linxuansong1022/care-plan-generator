@@ -100,39 +100,7 @@
 
 ---
 
-## 1.1 原始需求文档
-
-你收到了以下客户需求：
-
----
-
-**Customer:** A specialty pharmacy
-
-**Use Case:** We want to be able to automatically generate care plans based on information (clinicals) found within the patient’s record.
-
-**Why this is urgent:** It takes our pharmacists 20-40 min per patient to put these together manually. We are required to do these for compliance reasons and to get reimbursed by Medicare and pharma. We are extremely short-staffed so are backlogged on this task.
-
-**What we do today:** Our pharmacist will look at the patient’s medical history and generate a care plan. Here are the inputs we require:
-
-- Patient First Name, string
-- Patient Last Name, string
-- Referring Provider, string
-- Referring Provider NPI, 10-digit number
-- Patient MRN (unique ID), unique 6 digit number
-- Patient Primary Diagnosis (ICD-10 code)
-- Medication Name, string
-- Additional Diagnosis, list of ICD-10 codes
-- Medication history, list of strings
-- Patient Records, string OR pdf document
-
-**What we need the tool to do:**
-- Allow a medical assistant to input the above information in a webform
-- The webform must validate the data above
-- Warning if orders look like duplicates
-- Warning if a patient looks like it is duplicated
-- Provider only be entered once in the system
-- Call an LLM to generate a care plan as a text file they can download
-- Quick way to export for reporting to pharma
+to export for reporting to pharma
 
 **Production-Ready requirements:**
 - Every input is validated
@@ -291,7 +259,39 @@ Monitoring plan & lab schedule
 
 因为 AI 不知道你想要什么：
 - 是要帮你写代码？
-- 是要帮你找 bug？
+- 是要帮你找 bug？## 1.1 原始需求文档
+
+你收到了以下客户需求：
+
+---
+
+**Customer:** A specialty pharmacy
+
+**Use Case:** We want to be able to automatically generate care plans based on information (clinicals) found within the patient’s record.
+
+**Why this is urgent:** It takes our pharmacists 20-40 min per patient to put these together manually. We are required to do these for compliance reasons and to get reimbursed by Medicare and pharma. We are extremely short-staffed so are backlogged on this task.
+
+**What we do today:** Our pharmacist will look at the patient’s medical history and generate a care plan. Here are the inputs we require:
+
+- Patient First Name, string
+- Patient Last Name, string
+- Referring Provider, string
+- Referring Provider NPI, 10-digit number
+- Patient MRN (unique ID), unique 6 digit number
+- Patient Primary Diagnosis (ICD-10 code)
+- Medication Name, string
+- Additional Diagnosis, list of ICD-10 codes
+- Medication history, list of strings
+- Patient Records, string OR pdf document
+
+**What we need the tool to do:**
+- Allow a medical assistant to input the above information in a webform
+- The webform must validate the data above
+- Warning if orders look like duplicates
+- Warning if a patient looks like it is duplicated
+- Provider only be entered once in the system
+- Call an LLM to generate a care plan as a text file they can download
+- Quick way 
 - 还是要帮你列出需要问客户的问题？
 
 这就是为什么很多人用 AI 生成的代码质量不行、结构混乱 — 因为 prompt 本身就很模糊，AI 只能猜你想要什么。

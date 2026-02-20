@@ -7,6 +7,7 @@ from django.db.models import Q
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from .tasks import generate_care_plan_task 
 
 from .models import Order
 from .models import CarePlan  
@@ -110,7 +111,8 @@ class OrderListCreate(generics.ListCreateAPIView):
         #1.存数据库，status设为pending，不再是processing
         order = serializer.save(status='pending')
         #2 把order.id 放进redis队列，lpush = "left push"，往列表左边塞一个元素
-        redis_client.lpush('careplan_queue', order.id)
+        #redis_client.lpush('careplan_queue', order.id)
+        generate_care_plan_task.delay(order.id) #.delay异步执行这个任务 立刻返回 不等结果
         #3 立刻返回 不再等LLM,这里返回202表示已接收请求，但尚未处理完成，201表示创建成功，所以不用201
         result_serializer = self.get_serializer(order)
         return Response(result_serializer.data, status=status.HTTP_202_ACCEPTED)
