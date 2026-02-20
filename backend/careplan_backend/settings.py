@@ -105,3 +105,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Anthropic API Key
 # ============================================================
 GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY', '')
+
+
+# ============================================================
+# Redis 配置（Day 4：消息队列）
+# ============================================================
+REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')

@@ -1,5 +1,5 @@
 # backend/orders/views.py
-
+import redis
 import google.generativeai as genai
 from django.conf import settings
 from django.http import HttpResponse
@@ -11,6 +11,14 @@ from rest_framework.views import APIView
 from .models import Order
 from .models import CarePlan  
 from .serializers import OrderSerializer
+from django.conf import settings
+
+
+# ============================================================
+# 1. 初始化 Redis 连接（放在文件顶部，全局可用）
+# ============================================================
+# 默认连接本地 Redis，如果你的 Redis 在其他地方，请修改 REDIS_URL
+redis_client = redis.Redis.from_url(settings.REDIS_URL)
 
 
 def generate_care_plan(order):
@@ -96,13 +104,16 @@ class OrderListCreate(generics.ListCreateAPIView):
         return queryset
 
     def create(self, request, *args, **kwargs):
-        """创建订单 + 同步调 LLM"""
+        """创建订单 + 放进队列->立刻返回（不再同步调LLM）"""
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        
-        order = serializer.save(status='processing')
-
-        care_plan_content = generate_care_plan(order)
+        #1.存数据库，status设为pending，不再是processing
+        order = serializer.save(status='pending')
+        #2 把order.id 放进redis队列，lpush = "left push"，往列表左边塞一个元素
+        redis_client.lpush('careplan_queue', order.id)
+        #3 立刻返回 不再等LLM,这里返回202表示已接收请求，但尚未处理完成，201表示创建成功，所以不用201
+        result_serializer = self.get_serializer(order)
+        return Response(result_serializer.data, status=status.HTTP_202_ACCEPTED)
 
         if care_plan_content:
             order.status = 'completed'
