@@ -136,6 +136,28 @@ class OrderDetail(generics.RetrieveAPIView):
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
 
+class OrderStatusView(APIView):
+    """GET /api/orders/{id}/status/ → 专门给前端轮询用的状态接口"""
+    def get(self, request, pk):
+        try:
+            order = Order.objects.get(pk=pk)
+        except Order.DoesNotExist:
+            return Response({'error': 'Order not found'}, status=status.HTTP_404_NOT_FOUND)
+            
+        data = {
+            'order_id': order.id,
+            'status': order.status,
+            'patient_first_name': order.patient.first_name,
+            'patient_last_name': order.patient.last_name,
+            'medication_name': order.medication_name,
+        }
+        
+        # 如果任务大功告成，连带把康复计划文本一起塞进去返回
+        if order.status == 'completed' and hasattr(order, 'care_plan'):
+            data['care_plan_content'] = order.care_plan.content
+            
+        return Response(data, status=status.HTTP_200_OK)
+
 class CarePlanView(APIView):
     """GET /api/orders/{id}/careplan → 获取 Care Plan 内容"""
     def get(self, request, pk):
@@ -192,3 +214,4 @@ Generated: {order.created_at.strftime('%Y-%m-%d %H:%M')}
         response = HttpResponse(file_content, content_type='text/plain; charset=utf-8')
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         return response
+

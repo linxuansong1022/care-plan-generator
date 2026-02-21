@@ -12,6 +12,9 @@ urlpatterns = [
     # GET /api/orders/42/                    → 单个订单详情
     path('orders/<int:pk>/', views.OrderDetail.as_view(), name='order-detail'),
 
+    # GET /api/orders/42/status/             → 专门留给前端轮询状态的接口
+    path('orders/<int:pk>/status/', views.OrderStatusView.as_view(), name='order-status'),
+
     # GET /api/orders/42/careplan/download   → 下载 Care Plan 文件
     path('orders/<int:pk>/careplan/download', views.CarePlanDownload.as_view(), name='careplan-download'),
     # GET /api/orders/42/careplan            → 获取 Care Plan 内容
