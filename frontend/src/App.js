@@ -1,16 +1,24 @@
 // frontend/src/App.js
 //
-// Day 2 MVP 前端 — 新增：搜索历史订单 + 下载 Care Plan
+// Day 6 — 新增 Polling：提交后每 3 秒查一次状态，直到 completed/failed
 //
-// 页面结构：
-// 1. 顶部搜索栏：输入关键词 → 搜索历史订单 → 点击查看/下载
-// 2. 表单：填写信息 → 提交 → 显示新生成的 Care Plan
-// 3. 结果区：显示 Care Plan 内容 + 下载按钮
+// 改动点：
+// 1. 新增 useRef（用于存 interval ID）
+// 2. 新增 useEffect cleanup（组件卸载时停止 polling）
+// 3. 新增 pollingOrderId state（记录正在 polling 的订单 ID）
+// 4. 改写 handleSubmit（提交后启动 polling，不再直接显示结果）
+// 5. 新增 pollOrderStatus 函数（polling 核心逻辑）
+// 6. 新增"正在生成中"的 UI 状态
 
-import React, { useState } from 'react';
+// ===================== 改动 1：新增 useRef 和 useEffect =====================
+import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+
+// Polling 配置常量
+const POLL_INTERVAL = 3000;  // 每 3 秒查一次
+const MAX_POLL_COUNT = 40;   // 最多查 40 次（3秒×40 = 2分钟后放弃）
 
 function App() {
   // ============ 表单相关 state ============
@@ -32,24 +40,43 @@ function App() {
   const [error, setError] = useState(null);
 
   // ============ 搜索相关 state ============
-  const [searchQuery, setSearchQuery] = useState('');        // 搜索框里的文字
-  const [searchResults, setSearchResults] = useState([]);     // 搜索结果列表
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState(null);   // 用户点击查看的订单
+  const [selectedOrder, setSelectedOrder] = useState(null);
+
+  // ===================== 改动 2：Polling 相关 state =====================
+  // pollingOrderId：当前正在 polling 的订单 ID（null = 没在 polling）
+  const [pollingOrderId, setPollingOrderId] = useState(null);
+
+  // useRef 存 interval ID：为什么用 useRef 而不是 useState？
+  // 因为 clearInterval 需要拿到最新的 interval ID，
+  // useState 在 setInterval 的回调里会拿到旧值（闭包陷阱）
+  // useRef 的 .current 永远是最新值
+  const pollingIntervalRef = useRef(null);
+  const pollCountRef = useRef(0);  // 已经 poll 了多少次
+
+  // ===================== 改动 3：组件卸载时清理 =====================
+  // 防止用户关掉页面后 polling 还在跑（内存泄漏）
+  useEffect(() => {
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
+  }, []);
 
   // ============================================================
-  // 搜索订单
-  // 发 GET /api/orders/?search=xxx 到后端
+  // 搜索订单（和之前一样，没改动）
   // ============================================================
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
 
     setSearchLoading(true);
-    setSelectedOrder(null);  // 清掉之前选中的
+    setSelectedOrder(null);
     try {
       const response = await axios.get(`${API_URL}/api/orders/`, {
         params: { search: searchQuery }
-        // axios 会自动把 params 变成 URL 参数: ?search=xxx
       });
       setSearchResults(response.data);
     } catch (err) {
@@ -60,32 +87,82 @@ function App() {
     }
   };
 
-  // 按回车也能搜索
   const handleSearchKeyDown = (e) => {
     if (e.key === 'Enter') handleSearch();
   };
 
   // ============================================================
-  // 下载 Care Plan
-  // 原理：创建一个隐藏的 <a> 标签，设置 href 为下载 URL，模拟点击
+  // 下载 Care Plan（和之前一样，没改动）
   // ============================================================
   const handleDownload = (orderId) => {
-    // 直接打开下载链接，浏览器会自动处理（因为后端设了 Content-Disposition）
     window.open(`${API_URL}/api/orders/${orderId}/careplan/download`, '_blank');
   };
 
   // ============================================================
-  // 提交表单（和之前一样）
+  // 表单输入处理（和之前一样，没改动）
   // ============================================================
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  // ===================== 改动 4：Polling 核心函数 =====================
+  // 
+  // 这个函数会被 setInterval 每 3 秒调用一次
+  // 它做的事：GET /api/orders/{id}/status/ → 看 status → 决定是否停止
+  //
+  const pollOrderStatus = async (orderId) => {
+    pollCountRef.current += 1;  // 计数 +1
+
+    try {
+      const response = await axios.get(`${API_URL}/api/orders/${orderId}/status/`);
+      const data = response.data;
+
+      if (data.status === 'completed' || data.status === 'failed') {
+        // ======== 终止条件：任务完成或失败 ========
+        clearInterval(pollingIntervalRef.current);  // 停止 polling
+        pollingIntervalRef.current = null;
+        pollCountRef.current = 0;
+        setPollingOrderId(null);  // 清除"正在 polling"状态
+        setLoading(false);        // 按钮恢复可用
+        setResult(data);          // 把结果交给 UI 显示
+      }
+
+      // 如果 status 是 pending 或 processing，什么都不做，等下一次 poll
+
+    } catch (err) {
+      console.error('Polling error:', err);
+      // 网络错误不停止 polling，下次再试
+      // 但如果已经超过最大次数，就放弃
+    }
+
+    // ======== 超时保护：防止无限 polling ========
+    if (pollCountRef.current >= MAX_POLL_COUNT) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+      pollCountRef.current = 0;
+      setPollingOrderId(null);
+      setLoading(false);
+      setError('Care plan generation timed out. Please check back later or try again.');
+    }
+  };
+
+  // ===================== 改动 5：重写 handleSubmit =====================
+  //
+  // 之前的流程：POST → 拿到结果 → 直接显示
+  // 现在的流程：POST → 拿到 order_id → 启动 polling → polling 拿到结果 → 显示
+  //
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setResult(null);
     setError(null);
+    setPollingOrderId(null);
+
+    // 如果有之前的 polling 在跑，先停掉
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
 
     const payload = {
       ...formData,
@@ -98,17 +175,33 @@ function App() {
     };
 
     try {
+      // 第 1 步：POST 提交订单，拿到 202 + order_id
       const response = await axios.post(`${API_URL}/api/orders/`, payload);
-      setResult(response.data);
+      const orderId = response.data.id;
+
+      // 第 2 步：记录正在 polling 的订单（UI 会显示"正在生成中"）
+      setPollingOrderId(orderId);
+
+      // 第 3 步：启动 polling
+      // setInterval 会每 POLL_INTERVAL 毫秒执行一次 pollOrderStatus
+      // 注意：setLoading 保持 true，所以按钮还是禁用状态
+      pollCountRef.current = 0;
+      pollingIntervalRef.current = setInterval(
+        () => pollOrderStatus(orderId),
+        POLL_INTERVAL
+      );
+
     } catch (err) {
+      // POST 本身失败（网络错误、服务器 500 等）
+      setLoading(false);
       setError(
         err.response?.data
           ? JSON.stringify(err.response.data, null, 2)
           : err.message
       );
-    } finally {
-      setLoading(false);
     }
+    // 注意：这里没有 finally { setLoading(false) }
+    // 因为 loading 要一直保持到 polling 结束才关掉
   };
 
   // ============================================================
@@ -121,7 +214,7 @@ function App() {
       </h1>
 
       {/* ================================================================
-          搜索区域
+          搜索区域（和之前一样，没改动）
           ================================================================ */}
       <fieldset style={{ ...fieldsetStyle, backgroundColor: '#f8f9fa' }}>
         <legend style={legendStyle}>🔍 Search Past Orders</legend>
@@ -153,7 +246,6 @@ function App() {
           </button>
         </div>
 
-        {/* ---- 搜索结果列表 ---- */}
         {searchResults.length > 0 && (
           <div style={{ marginTop: '12px' }}>
             <p style={{ fontSize: '13px', color: '#666', margin: '0 0 8px' }}>
@@ -187,15 +279,14 @@ function App() {
                         color: 'white',
                         backgroundColor:
                           order.status === 'completed' ? '#28a745' :
-                          order.status === 'failed' ? '#dc3545' :
-                          order.status === 'processing' ? '#ffc107' : '#6c757d',
+                            order.status === 'failed' ? '#dc3545' :
+                              order.status === 'processing' ? '#ffc107' : '#6c757d',
                       }}>
                         {order.status}
                       </span>
                     </td>
                     <td style={tdStyle}>{order.order_date}</td>
                     <td style={tdStyle}>
-                      {/* 查看按钮：点击后展开 care plan 内容 */}
                       {order.status === 'completed' && (
                         <>
                           <button
@@ -223,14 +314,12 @@ function App() {
           </div>
         )}
 
-        {/* ---- 搜索后没结果 ---- */}
         {searchResults.length === 0 && searchQuery && !searchLoading && (
           <p style={{ color: '#999', fontSize: '13px', marginTop: '10px' }}>
             No orders found for "{searchQuery}"
           </p>
         )}
 
-        {/* ---- 展开查看某个历史 care plan ---- */}
         {selectedOrder && (
           <div style={{
             marginTop: '12px',
@@ -269,7 +358,7 @@ function App() {
       </fieldset>
 
       {/* ================================================================
-          提交新订单的表单（和之前一样）
+          提交新订单的表单（和之前一样，没改动）
           ================================================================ */}
       <h2 style={{ fontSize: '18px', color: '#333', marginTop: '30px' }}>📝 New Order</h2>
 
@@ -280,25 +369,25 @@ function App() {
             <label style={labelStyle}>
               First Name *
               <input name="patient_first_name" value={formData.patient_first_name}
-                     onChange={handleChange} required style={inputStyle} />
+                onChange={handleChange} required style={inputStyle} />
             </label>
             <label style={labelStyle}>
               Last Name *
               <input name="patient_last_name" value={formData.patient_last_name}
-                     onChange={handleChange} required style={inputStyle} />
+                onChange={handleChange} required style={inputStyle} />
             </label>
           </div>
           <div style={rowStyle}>
             <label style={labelStyle}>
               MRN (6 digits) *
               <input name="patient_mrn" value={formData.patient_mrn}
-                     onChange={handleChange} required style={inputStyle}
-                     placeholder="e.g. 123456" />
+                onChange={handleChange} required style={inputStyle}
+                placeholder="e.g. 123456" />
             </label>
             <label style={labelStyle}>
               Date of Birth *
               <input name="patient_dob" type="date" value={formData.patient_dob}
-                     onChange={handleChange} required style={inputStyle} />
+                onChange={handleChange} required style={inputStyle} />
             </label>
           </div>
         </fieldset>
@@ -309,13 +398,13 @@ function App() {
             <label style={labelStyle}>
               Provider Name *
               <input name="provider_name" value={formData.provider_name}
-                     onChange={handleChange} required style={inputStyle} />
+                onChange={handleChange} required style={inputStyle} />
             </label>
             <label style={labelStyle}>
               NPI (10 digits) *
               <input name="provider_npi" value={formData.provider_npi}
-                     onChange={handleChange} required style={inputStyle}
-                     placeholder="e.g. 1234567890" />
+                onChange={handleChange} required style={inputStyle}
+                placeholder="e.g. 1234567890" />
             </label>
           </div>
         </fieldset>
@@ -326,33 +415,33 @@ function App() {
             <label style={labelStyle}>
               Medication Name *
               <input name="medication_name" value={formData.medication_name}
-                     onChange={handleChange} required style={inputStyle}
-                     placeholder="e.g. IVIG" />
+                onChange={handleChange} required style={inputStyle}
+                placeholder="e.g. IVIG" />
             </label>
             <label style={labelStyle}>
               Primary Diagnosis (ICD-10) *
               <input name="primary_diagnosis" value={formData.primary_diagnosis}
-                     onChange={handleChange} required style={inputStyle}
-                     placeholder="e.g. G70.01" />
+                onChange={handleChange} required style={inputStyle}
+                placeholder="e.g. G70.01" />
             </label>
           </div>
           <label style={{ ...labelStyle, display: 'block' }}>
             Additional Diagnoses (comma-separated, optional)
             <input name="additional_diagnoses" value={formData.additional_diagnoses}
-                   onChange={handleChange} style={inputStyle}
-                   placeholder="e.g. I10, K21.0" />
+              onChange={handleChange} style={inputStyle}
+              placeholder="e.g. I10, K21.0" />
           </label>
           <label style={{ ...labelStyle, display: 'block' }}>
             Medication History (comma-separated, optional)
             <input name="medication_history" value={formData.medication_history}
-                   onChange={handleChange} style={inputStyle}
-                   placeholder="e.g. Pyridostigmine 60mg, Prednisone 10mg" />
+              onChange={handleChange} style={inputStyle}
+              placeholder="e.g. Pyridostigmine 60mg, Prednisone 10mg" />
           </label>
           <label style={{ ...labelStyle, display: 'block' }}>
             Patient Records / Notes (optional)
             <textarea name="patient_records" value={formData.patient_records}
-                      onChange={handleChange} style={{ ...inputStyle, height: '80px' }}
-                      placeholder="Any additional patient notes..." />
+              onChange={handleChange} style={{ ...inputStyle, height: '80px' }}
+              placeholder="Any additional patient notes..." />
           </label>
         </fieldset>
 
@@ -365,7 +454,7 @@ function App() {
             cursor: loading ? 'not-allowed' : 'pointer',
           }}
         >
-          {loading ? '⏳ Generating Care Plan... (this may take 10-30 seconds)' : '🚀 Submit Order & Generate Care Plan'}
+          {loading ? '⏳ Generating Care Plan...' : '🚀 Submit Order & Generate Care Plan'}
         </button>
       </form>
 
@@ -377,20 +466,47 @@ function App() {
         </div>
       )}
 
+      {/* ===================== 改动 6：新增"正在生成中"状态 ===================== */}
+      {/* 
+        pollingOrderId 不为 null = 正在 polling = 正在等后台生成
+        显示一个进度提示，让用户知道系统在工作
+      */}
+      {pollingOrderId && (
+        <div style={{
+          marginTop: '20px',
+          padding: '20px',
+          backgroundColor: '#e3f2fd',
+          border: '1px solid #90caf9',
+          borderRadius: '6px',
+          textAlign: 'center',
+        }}>
+          <h3 style={{ color: '#1565c0', margin: '0 0 10px' }}>
+            ⏳ Generating Care Plan...
+          </h3>
+          <p style={{ color: '#666', margin: 0, fontSize: '14px' }}>
+            Order #{pollingOrderId} is being processed. Checking status every {POLL_INTERVAL / 1000} seconds...
+          </p>
+          <p style={{ color: '#999', margin: '5px 0 0', fontSize: '12px' }}>
+            This usually takes 10-30 seconds. Please wait.
+          </p>
+        </div>
+      )}
+
       {/* ---- 新生成的 Care Plan 结果 ---- */}
+      {/* 改动 7：result 现在来自 polling 的 /status/ endpoint，字段名可能不同 */}
       {result && result.status === 'completed' && (
         <div style={{ marginTop: '20px', padding: '20px', backgroundColor: '#f0fff0', border: '1px solid #0a0', borderRadius: '6px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h2 style={{ color: '#0a0', margin: 0 }}>✅ Care Plan Generated</h2>
             <button
-              onClick={() => handleDownload(result.id)}
+              onClick={() => handleDownload(result.order_id)}
               style={{ ...actionBtnStyle, backgroundColor: '#28a745', padding: '8px 20px', fontSize: '14px' }}
             >
               📥 Download .txt
             </button>
           </div>
           <p style={{ color: '#666', margin: '5px 0 15px', fontSize: '14px' }}>
-            Order #{result.id} | {result.patient_first_name} {result.patient_last_name} | {result.medication_name}
+            Order #{result.order_id}
           </p>
           <div style={{
             backgroundColor: 'white',
@@ -411,7 +527,7 @@ function App() {
         <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#fff3e0', border: '1px solid #ff9800', borderRadius: '6px' }}>
           <h3 style={{ color: '#ff9800' }}>⚠️ Care Plan Generation Failed</h3>
           <p>The LLM was unable to generate a care plan. Please try again.</p>
-          <p style={{ fontSize: '14px', color: '#666' }}>Order #{result.id} has been saved with status: failed</p>
+          <p style={{ fontSize: '14px', color: '#666' }}>Order #{result.order_id} has been saved with status: failed</p>
         </div>
       )}
     </div>
@@ -419,7 +535,7 @@ function App() {
 }
 
 // ============================================================
-// 样式
+// 样式（和之前一样，没改动）
 // ============================================================
 const fieldsetStyle = {
   border: '1px solid #ddd',
@@ -471,7 +587,6 @@ const buttonStyle = {
   marginTop: '10px',
 };
 
-// 表格里的小按钮
 const actionBtnStyle = {
   padding: '4px 10px',
   fontSize: '12px',
