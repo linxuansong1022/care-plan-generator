@@ -6,65 +6,25 @@
 
 """
 from .adapters.base import InternalOrder
-import google.generativeai as genai
 from django.conf import settings
 
 from .models import Order, CarePlan, Patient, Provider
 from .tasks import generate_care_plan_task
 from django.utils import timezone
 from .exceptions import BlockError, WarningException
+from .LLMServices import get_LLM_adapter
 
 
 # ============================================================
 # LLM 调用
 # ============================================================
-def generate_care_plan(order):
-    """调用 Google Gemini API 生成 Care Plan（同步）"""
-    prompt = f"""You are a clinical pharmacist creating a care plan for a specialty pharmacy patient.
-
-Patient Information:
-- Name: {order.patient.first_name} {order.patient.last_name}
-- Date of Birth: {order.patient.dob}
-- MRN: {order.patient.mrn}
-
-Provider: {order.provider.name} (NPI: {order.provider.npi})
-
-Medication: {order.medication_name}
-Primary Diagnosis (ICD-10): {order.primary_diagnosis}
-Additional Diagnoses: {', '.join(order.additional_diagnoses) if order.additional_diagnoses else 'None'}
-Medication History: {', '.join(order.medication_history) if order.medication_history else 'None'}
-Patient Records/Notes: {order.patient_records if order.patient_records else 'None provided'}
-
-Please generate a comprehensive pharmaceutical care plan with EXACTLY these four sections:
-
-1. **Problem List / Drug Therapy Problems (DTPs)**
-   - Identify potential drug therapy problems related to the prescribed medication and diagnoses
-
-2. **Goals (SMART format)**
-   - Specific, Measurable, Achievable, Relevant, Time-bound goals for this patient
-
-3. **Pharmacist Interventions / Plan**
-   - Specific actions the pharmacist should take
-   - Patient education points
-   - Coordination with the prescribing provider
-
-4. **Monitoring Plan & Lab Schedule**
-   - Labs to monitor and frequency
-   - Clinical parameters to track
-   - Follow-up schedule
-
-Be specific and clinically relevant to the medication and diagnoses provided."""
-
-    try:
-        genai.configure(api_key=settings.GOOGLE_API_KEY)
-        model = genai.GenerativeModel('gemini-flash-latest')
-        response = model.generate_content(prompt)
-        return response.text
-    except Exception as e:
-        print(f"❌ Gemini Error: {e}")
-        import traceback
-        traceback.print_exc()
-        return None
+class CarePlanService:
+    def __init__(self):
+        self.llm = get_LLM_adapter()
+    
+    def generate_care_plan(self, order):
+        content = self.llm.generate_care_plan(order)
+        return content
 
 def check_provider(provider_data):
     """Provider 重复检测"""
