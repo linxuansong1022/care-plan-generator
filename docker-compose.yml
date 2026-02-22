@@ -88,6 +88,22 @@ services:
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}
       - REDIS_URL=redis://redis:6379/0
 
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    depends_on:
+      - backend # 等 backend 起来再启动
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3001:3000" # ← 改成 3001，避免和 frontend 的 3000 冲突
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+
 # 命名卷：Docker 管理的持久化存储
 volumes:
   pgdata:
