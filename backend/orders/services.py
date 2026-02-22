@@ -5,6 +5,7 @@
 所有"怎么做"的逻辑都在这里，views.py 只负责"接什么请求、返回什么响应"
 
 """
+from .adapters.base import InternalOrder
 import google.generativeai as genai
 from django.conf import settings
 
@@ -98,7 +99,7 @@ def check_patient(patient_data, confirm=False):
         existing = Patient.objects.get(mrn=mrn)
         if (existing.first_name == first_name 
             and existing.last_name == last_name 
-            and existing.dob == dob):
+            and str(existing.dob) == str(dob)):
             return existing
         else:
             warnings.append(
@@ -170,31 +171,38 @@ def check_order_duplicate(patient, medication_name, confirm=False):
 # ============================================================
 # 创建订单
 # ============================================================
-def create_order(validated_data, confirm=False):
+def create_order(internal_order: InternalOrder):
     patient_data = {
-        'first_name': validated_data.pop('patient_first_name'),
-        'last_name': validated_data.pop('patient_last_name'),
-        'mrn': validated_data.pop('patient_mrn'),
-        'dob': validated_data.pop('patient_dob'),
+        'first_name': internal_order.patient.first_name,
+        'last_name': internal_order.patient.last_name,
+        'mrn': internal_order.patient.mrn,
+        'dob': internal_order.patient.dob,
     }
 
     provider_data = {
-        'name': validated_data.pop('provider_name'),
-        'npi': validated_data.pop('provider_npi'),
+        'name': internal_order.provider.name,
+        'npi': internal_order.provider.npi,
     }
 
     # === 重复检测 ===
     provider = check_provider(provider_data)        # ← 有问题直接 raise 了，不会走到下一行
-    patient = check_patient(patient_data, confirm=confirm)
+    patient = check_patient(patient_data, confirm=internal_order.confirm)
     if provider is None:
         provider = Provider.objects.create(**provider_data)
     if patient is None:
         patient, _ = Patient.objects.get_or_create(
             mrn=patient_data['mrn'], defaults=patient_data
         )
-    check_order_duplicate(patient, validated_data.get('medication_name', ''), confirm=confirm)
+    check_order_duplicate(patient, internal_order.medication_name, confirm=internal_order.confirm)
+    
     order = Order.objects.create(
-        patient=patient, provider=provider, **validated_data
+        patient=patient, 
+        provider=provider,
+        medication_name=internal_order.medication_name,
+        primary_diagnosis=internal_order.primary_diagnosis,
+        additional_diagnoses=internal_order.additional_diagnoses,
+        medication_history=internal_order.medication_history,
+        patient_records=internal_order.patient_records
     )
     return order 
   

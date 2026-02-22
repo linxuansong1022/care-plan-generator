@@ -90,3 +90,55 @@ class CarePlanDownload(APIView):
         response = HttpResponse(file_content, content_type='text/plain; charset=utf-8')
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         return response
+
+
+class ExternalIntakeView(APIView):
+    """
+    Webhook: 接收外部异构系统的数据 (POST /api/intake/?source=xxx)
+    """
+    authentication_classes = [] 
+    permission_classes = []
+    
+    def post(self, request, *args, **kwargs):
+        from .adapters import get_adapter
+        from .adapters.base import AdapterError
+        from .services import create_order
+        
+        source = request.query_params.get('source')
+        if not source:
+            return Response({"error": "Missing 'source' parameter"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            # 1. adapter 转换
+            adapter = get_adapter(source)
+            if source in ("pharmacorp", "nordic"):
+                raw = request.body
+            else:
+                raw = request.data
+            internal_order = adapter.process(raw)
+            
+            # 2. 过 serializer 验证（MRN 6位、NPI 10位等）
+            serializer = OrderSerializer(
+                data=internal_order.to_serializer_format(),
+                context={'confirm': internal_order.confirm}
+            )
+            serializer.is_valid(raise_exception=True)
+
+            # 3. 验证通过 → 走正常的创建流程
+            order = serializer.save(status='pending')
+
+            # 4. 触发异步任务（你之前漏掉的）
+            services.submit_care_plan_task(order.id)
+            
+            return Response({
+                "message": f"Order created via {source}", 
+                "order_id": order.id
+            }, status=status.HTTP_201_CREATED)
+            
+        except ValueError as e: 
+            # 找不到对应的 source (比如传错了名字)
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            
+        except AdapterError as e: 
+            # 数据转换失败 (比如必填项缺失，数据格式不对)
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
