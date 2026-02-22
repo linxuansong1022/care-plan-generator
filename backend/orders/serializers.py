@@ -35,4 +35,5 @@ class OrderSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         from .services import create_order
-        return create_order(validated_data)
+        confirm = self.context.get('confirm', False)
+        return create_order(validated_data, confirm=confirm)

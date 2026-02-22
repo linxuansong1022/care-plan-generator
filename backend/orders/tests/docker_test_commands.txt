@@ -1,0 +1,49 @@
+# ============================================================
+# 1. 先在 requirements.txt 里加上测试依赖
+# ============================================================
+# 在你的 backend/requirements.txt 末尾添加：
+pytest==8.0.0
+pytest-django==4.8.0
+
+
+# ============================================================
+# 2. 用 Docker 跑测试的命令
+# ============================================================
+
+# 方法 A：在已经运行的容器里执行（推荐，最快）
+docker compose exec backend pytest orders/tests/ -v
+
+# 方法 B：启动一个临时容器跑测试
+docker compose run --rm backend pytest orders/tests/ -v
+
+# 只跑 Patient 检测的测试：
+docker compose exec backend pytest orders/tests/test_check_patient.py -v
+
+# 只跑 Integration 测试：
+docker compose exec backend pytest orders/tests/test_api_orders.py -v
+
+# 跑测试并显示覆盖率：
+# 先 pip install pytest-cov（也加到 requirements.txt 里）
+docker compose exec backend pytest orders/tests/ -v --cov=orders --cov-report=term-missing
+
+
+# ============================================================
+# 3. pytest.ini 放在 backend/ 目录下（和 manage.py 同级）
+# ============================================================
+# backend/
+# ├── manage.py
+# ├── pytest.ini              ← 放这里
+# ├── careplan_backend/
+# │   └── settings.py
+# └── orders/
+#     ├── models.py
+#     ├── services.py
+#     ├── exceptions.py
+#     ├── exception_handler.py
+#     └── tests/
+#         ├── __init__.py
+#         ├── conftest.py
+#         ├── test_check_provider.py
+#         ├── test_check_patient.py
+#         ├── test_check_order.py
+#         └── test_api_orders.py
