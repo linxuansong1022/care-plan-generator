@@ -39,13 +39,19 @@ class OrderListCreate(generics.ListCreateAPIView):
         return queryset
 
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
+        serializer = self.get_serializer(
+            data=request.data,
+            context={'confirm': request.data.get('confirm', False)}  # 传给 serializer
+        )
         serializer.is_valid(raise_exception=True)
+        
+        # serializer.save() 会触发 serializer 的 create() 
+        # 进而触发 services.create_order()，遇到任何校验失败都会抛出异常，被全局异常处理器捕获
         order = serializer.save(status='pending')
+        
         services.submit_care_plan_task(order.id)
         result_serializer = self.get_serializer(order)
         return Response(result_serializer.data, status=status.HTTP_202_ACCEPTED)
-
 
 class OrderDetail(generics.RetrieveAPIView):
     """GET /api/orders/{id}/ → 单个订单详情"""

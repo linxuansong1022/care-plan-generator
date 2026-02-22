@@ -10,6 +10,8 @@ from django.conf import settings
 
 from .models import Order, CarePlan, Patient, Provider
 from .tasks import generate_care_plan_task
+from django.utils import timezone
+from .exceptions import BlockError, WarningException
 
 
 # ============================================================
@@ -63,11 +65,112 @@ Be specific and clinically relevant to the medication and diagnoses provided."""
         traceback.print_exc()
         return None
 
+def check_provider(provider_data):
+    """Provider 重复检测"""
+    npi = provider_data['npi']
+    name = provider_data['name']
+    
+    try:
+        existing = Provider.objects.get(npi=npi)
+    except Provider.DoesNotExist:
+        return None  # 全新 NPI，没问题
+    
+    if existing.name == name:
+        return existing  # NPI + 名字都一样，完美复用
+    raise BlockError(                               # ← 改：raise 替代 return
+        message="Provider NPI conflict",
+        detail=f"NPI {npi} is already registered to '{existing.name}', "
+               f"but you submitted '{name}'.",
+        code="PROVIDER_NPI_CONFLICT"
+    )
 
+def check_patient(patient_data, confirm=False):
+    """Patient 重复检测"""
+    mrn = patient_data['mrn']
+    first_name = patient_data['first_name']
+    last_name = patient_data['last_name']
+    dob = patient_data['dob']
+    
+    warnings = []
+    
+    # 检查 1: MRN 已存在
+    try:
+        existing = Patient.objects.get(mrn=mrn)
+        if (existing.first_name == first_name 
+            and existing.last_name == last_name 
+            and existing.dob == dob):
+            return existing
+        else:
+            warnings.append(
+                f"MRN {mrn} exists for '{existing.first_name} {existing.last_name}' "
+                f"(DOB: {existing.dob}), but you submitted "
+                f"'{first_name} {last_name}' (DOB: {dob})."
+            )
+    except Patient.DoesNotExist:
+        pass
+    
+    # 检查 2: 名字+DOB 相同但 MRN 不同
+    same_name_dob = Patient.objects.filter(
+        first_name=first_name,
+        last_name=last_name,
+        dob=dob
+    ).exclude(mrn=mrn)
+    
+    if same_name_dob.exists():
+        match = same_name_dob.first()
+        warnings.append(
+            f"Patient '{first_name} {last_name}' (DOB: {dob}) already exists "
+            f"with MRN {match.mrn}, but you submitted MRN {mrn}."
+        )
+    
+    if warnings and not confirm:
+        raise WarningException(                     # ← 改：raise 替代 return
+            message="Possible duplicate patient",
+            detail=warnings,
+            code="PATIENT_DUPLICATE_WARNING"
+        )
+    
+    return None
+
+
+def check_order_duplicate(patient, medication_name, confirm=False):
+    """Order 重复检测"""
+    today = timezone.now().date()
+    
+    existing = Order.objects.filter(
+        patient=patient,
+        medication_name__iexact=medication_name
+    )
+    
+    if not existing.exists():
+        return None
+    
+    # 同患者 + 同药 + 同一天 → ERROR（不可跳过）
+    if existing.filter(created_at__date=today).exists():
+        raise BlockError(                           # ← 改：raise
+            message="Duplicate order",
+            detail=f"Patient {patient.first_name} {patient.last_name} "
+                   f"(MRN: {patient.mrn}) already has an order for "
+                   f"'{medication_name}' today.",
+            code="ORDER_SAME_DAY_DUPLICATE"
+        )
+    
+    # 同患者 + 同药 + 不同天 → WARNING
+    latest = existing.order_by('-created_at').first()
+    if not confirm:
+        raise WarningException(                     # ← 改：raise
+            message="Previous order exists",
+            detail=f"Patient {patient.first_name} {patient.last_name} "
+                   f"(MRN: {patient.mrn}) had a previous order for "
+                   f"'{medication_name}' on {latest.created_at.date()}.",
+            code="ORDER_PREVIOUS_EXISTS"
+        )
+    
+    return None
 # ============================================================
 # 创建订单
 # ============================================================
-def create_order(validated_data):
+def create_order(validated_data, confirm=False):
     patient_data = {
         'first_name': validated_data.pop('patient_first_name'),
         'last_name': validated_data.pop('patient_last_name'),
@@ -80,25 +183,21 @@ def create_order(validated_data):
         'npi': validated_data.pop('provider_npi'),
     }
 
-    patient, created = Patient.objects.get_or_create(
-        mrn=patient_data['mrn'],
-        defaults=patient_data
-    )
-
-    provider, created = Provider.objects.get_or_create(
-        npi=provider_data['npi'],
-        defaults=provider_data
-    )
-
+    # === 重复检测 ===
+    provider = check_provider(provider_data)        # ← 有问题直接 raise 了，不会走到下一行
+    patient = check_patient(patient_data, confirm=confirm)
+    if provider is None:
+        provider = Provider.objects.create(**provider_data)
+    if patient is None:
+        patient, _ = Patient.objects.get_or_create(
+            mrn=patient_data['mrn'], defaults=patient_data
+        )
+    check_order_duplicate(patient, validated_data.get('medication_name', ''), confirm=confirm)
     order = Order.objects.create(
-        patient=patient,
-        provider=provider,
-        **validated_data
+        patient=patient, provider=provider, **validated_data
     )
-
-    return order
-
-
+    return order 
+  
 def submit_care_plan_task(order_id):
     """触发 Celery 异步任务生成 care plan"""
     generate_care_plan_task.delay(order_id)

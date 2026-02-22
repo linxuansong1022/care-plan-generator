@@ -90,7 +90,8 @@ REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',       # 返回 JSON
         'rest_framework.renderers.BrowsableAPIRenderer', # 浏览器访问时显示漂亮的 API 界面
-    ]
+    ],
+    'EXCEPTION_HANDLER': 'orders.exception_handler.unified_exception_handler',
 }
 
 LANGUAGE_CODE = 'en-us'
