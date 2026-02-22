@@ -116,3 +116,5 @@ REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
 # ---- Celery 配置 ----
 CELERY_BROKER_URL = REDIS_URL  # 复用你已有的 Redis 连接
 CELERY_RESULT_BACKEND = REDIS_URL
+
+LLM_PROVIDER = os.environ.get("LLM_PROVIDER", "gemini")  # 默认用 gemini

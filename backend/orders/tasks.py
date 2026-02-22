@@ -12,7 +12,7 @@ from .models import Order, CarePlan
 
 @shared_task(bind=True, max_retries=3)
 def generate_care_plan_task(self, order_id):
-    from .services import generate_care_plan
+    from .services import CarePlanService
 
     try:
         order = Order.objects.get(id=order_id)
@@ -23,7 +23,8 @@ def generate_care_plan_task(self, order_id):
     try:
         order.status = 'processing'
         order.save()
-        content = generate_care_plan(order)
+        services = CarePlanService()
+        content = services.generate_care_plan(order)
 
         if content is None:
             raise Exception("LLM returned None")
