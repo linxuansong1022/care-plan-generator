@@ -8,4 +8,5 @@ from django.urls import path, include
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('orders.urls')),  # 所有 /api/xxx 的请求交给 orders app 处理
+    path('', include('django_prometheus.urls')),
 ]
