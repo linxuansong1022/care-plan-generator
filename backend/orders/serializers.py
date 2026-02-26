@@ -1,37 +1,46 @@
 # backend/orders/serializers.py
-"""
-Serializer（序列化器）
-====================
-只负责：前端 JSON ↔ 后端 Python 对象 的格式转换和字段声明
-不做业务逻辑（get_or_create 等操作已搬到 services.py）
-"""
 from rest_framework import serializers
 from .models import Order, Patient, Provider
 
+class PatientInputSerializer(serializers.Serializer):
+    first_name = serializers.CharField()
+    last_name = serializers.CharField()
+    mrn = serializers.CharField()
+    dob = serializers.DateField()
+
+class ProviderInputSerializer(serializers.Serializer):
+    name = serializers.CharField()
+    npi = serializers.CharField()
 
 class OrderSerializer(serializers.ModelSerializer):
-    # 前端发来的平铺字段（write_only=True 表示只接收，不返回）
-    patient_first_name = serializers.CharField(write_only=True)
-    patient_last_name = serializers.CharField(write_only=True)
-    patient_mrn = serializers.CharField(write_only=True)
-    patient_dob = serializers.DateField(write_only=True)
+    # 改为嵌套接收，匹配前端 payload 的嵌套结构 (patient.first_name 等)
+    patient = PatientInputSerializer(required=False)
+    provider = ProviderInputSerializer(required=False)
 
-    provider_name = serializers.CharField(write_only=True)
-    provider_npi = serializers.CharField(write_only=True)
-
-    # 动态获取关联的 CarePlan 内容（read_only，返回给前端用）
+    # 动态获取关联的 CarePlan 内容 (只读)
     care_plan_content = serializers.SerializerMethodField()
+    # 增加 order_id 字段，匹配 Lambda 返回结果
+    order_id = serializers.IntegerField(source='id', read_only=True)
+
+    # 兼容字段：Lambda 返回结果里是 patient_name
+    patient_name = serializers.SerializerMethodField()
+    provider_name_display = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
         fields = '__all__'
-        read_only_fields = ['id', 'status', 'order_date', 'created_at', 'patient', 'provider']
+        read_only_fields = ['id', 'status', 'order_date', 'created_at']
 
     def get_care_plan_content(self, obj):
-        """如果这个订单有关联的 care_plan，就返回内容；否则返回 None"""
         if hasattr(obj, 'care_plan'):
             return obj.care_plan.content
         return None
+
+    def get_patient_name(self, obj):
+        return f"{obj.patient.first_name} {obj.patient.last_name}" if obj.patient else ""
+
+    def get_provider_name_display(self, obj):
+        return obj.provider.name if obj.provider else ""
 
     def create(self, validated_data):
         from .services import create_order
@@ -39,18 +48,20 @@ class OrderSerializer(serializers.ModelSerializer):
         
         confirm = self.context.get('confirm', False)
         
-        # 将 DRF 吐出的平铺字典，装配成业务层要求的 InternalOrder 数据包 
+        # 处理嵌套数据
+        patient_data = validated_data.pop('patient', {})
+        provider_data = validated_data.pop('provider', {})
+        
         internal_order = InternalOrder(
             patient=InternalPatient(
-                first_name=validated_data.get('patient_first_name', ''),
-                last_name=validated_data.get('patient_last_name', ''),
-                mrn=validated_data.get('patient_mrn', ''),
-                # dob 是 DateField，转出来是 datetime.date 对象，我们需要 string
-                dob=str(validated_data.get('patient_dob', ''))
+                first_name=patient_data.get('first_name', ''),
+                last_name=patient_data.get('last_name', ''),
+                mrn=patient_data.get('mrn', ''),
+                dob=str(patient_data.get('dob', ''))
             ),
             provider=InternalProvider(
-                name=validated_data.get('provider_name', ''),
-                npi=validated_data.get('provider_npi', '')
+                name=provider_data.get('name', ''),
+                npi=provider_data.get('npi', '')
             ),
             medication_name=validated_data.get('medication_name', ''),
             primary_diagnosis=validated_data.get('primary_diagnosis', ''),
@@ -60,5 +71,4 @@ class OrderSerializer(serializers.ModelSerializer):
             confirm=confirm
         )
         
-        # 将组装好的公文包，递给纯洁的内核业务函数！
         return create_order(internal_order)

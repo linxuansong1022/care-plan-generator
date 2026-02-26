@@ -7,6 +7,7 @@ from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', include('orders.urls')),  # 所有 /api/xxx 的请求交给 orders app 处理
+    path('api/', include('orders.urls')),  # 保持旧路径兼容
+    path('', include('orders.urls')),      # 新路径适配 Lambda: /orders
     path('', include('django_prometheus.urls')),
 ]
