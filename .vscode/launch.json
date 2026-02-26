@@ -1,0 +1,21 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Django",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/backend/manage.py",
+            "args": [
+                "runserver",
+                "0.0.0.0:8000"
+            ],
+            "django": true,
+            "justMyCode": false,
+            "env": {
+                "GOOGLE_API_KEY": "${env:GOOGLE_API_KEY}",
+                "DATABASE_URL": "postgresql://postgres:postgres@localhost:5434/careplan"
+            }
+        }
+    ]
+}

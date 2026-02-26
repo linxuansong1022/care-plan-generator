@@ -14,7 +14,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+const API_URL = process.env.REACT_APP_API_URL || 'https://sq03jeg8gg.execute-api.eu-north-1.amazonaws.com';
 
 // Polling 配置常量
 const POLL_INTERVAL = 3000;  // 每 3 秒查一次
