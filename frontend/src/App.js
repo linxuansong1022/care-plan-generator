@@ -75,8 +75,8 @@ function App() {
     setSearchLoading(true);
     setSelectedOrder(null);
     try {
-      const response = await axios.get(`${API_URL}/api/orders/`, {
-        params: { search: searchQuery }
+      const response = await axios.get(`${API_URL}/orders`, {
+        params: { order_id: searchQuery }
       });
       setSearchResults(response.data);
     } catch (err) {
@@ -114,7 +114,9 @@ function App() {
     pollCountRef.current += 1;  // 计数 +1
 
     try {
-      const response = await axios.get(`${API_URL}/api/orders/${orderId}/status/`);
+      const response = await axios.get(`${API_URL}/orders`, {
+        params: { order_id: orderId }
+      });
       const data = response.data;
 
       if (data.status === 'completed' || data.status === 'failed') {
@@ -165,19 +167,31 @@ function App() {
     }
 
     const payload = {
-      ...formData,
+      patient: {
+        first_name: formData.patient_first_name,
+        last_name: formData.patient_last_name,
+        mrn: formData.patient_mrn,
+        dob: formData.patient_dob,
+      },
+      provider: {
+        name: formData.provider_name,
+        npi: formData.provider_npi,
+      },
+      medication_name: formData.medication_name,
+      primary_diagnosis: formData.primary_diagnosis,
       additional_diagnoses: formData.additional_diagnoses
         ? formData.additional_diagnoses.split(',').map(s => s.trim()).filter(Boolean)
         : [],
       medication_history: formData.medication_history
         ? formData.medication_history.split(',').map(s => s.trim()).filter(Boolean)
         : [],
+      patient_records: formData.patient_records || "",
     };
 
     try {
       // 第 1 步：POST 提交订单，拿到 202 + order_id
-      const response = await axios.post(`${API_URL}/api/orders/`, payload);
-      const orderId = response.data.id;
+      const response = await axios.post(`${API_URL}/orders`, payload);
+      const orderId = response.data.order_id;
 
       // 第 2 步：记录正在 polling 的订单（UI 会显示"正在生成中"）
       setPollingOrderId(orderId);
@@ -351,7 +365,7 @@ function App() {
               border: '1px solid #eee',
               borderRadius: '4px',
             }}>
-              {selectedOrder.care_plan_content}
+              {selectedOrder.care_plan?.content || selectedOrder.care_plan}
             </div>
           </div>
         )}
@@ -518,7 +532,7 @@ function App() {
             fontSize: '14px',
             lineHeight: '1.6',
           }}>
-            {result.care_plan_content}
+            {result.care_plan?.content || result.care_plan}
           </div>
         </div>
       )}
