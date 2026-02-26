@@ -1,0 +1,616 @@
+order_id,order_date,patient_mrn,patient_first_name,patient_last_name,patient_date_of_birth,provider_npi,provider_name,medication_name,primary_diagnosis_code,care_plan_status,care_plan_content
+86ecf31d-91b0-4280-9dac-f51daa7cc773,2026-01-13,123456,john,doe,1212-12-12,1111111111,Nine,IVIG,G70.0,completed,"# PHARMACIST CARE PLAN
+
+**Patient:** John Doe  
+**MRN:** 123456  
+**Date:** [Current Date]  
+**Pharmacist:** [Name]
+
+---
+
+## 1. PROBLEM LIST / DRUG THERAPY PROBLEMS (DTPs)
+
+### Primary DTPs Identified:
+
+**DTP #1: Incomplete Clinical Information**
+- **Problem:** Insufficient diagnostic and clinical data to optimize IVIG therapy
+- **Details:** Primary diagnosis code G70.0 appears incomplete; clinical records contain minimal information
+
+**DTP #2: Undefined IVIG Indication and Dosing**
+- **Problem:** IVIG indication, dose, frequency, and duration not specified
+- **Risk:** Potential for suboptimal dosing or inappropriate therapy selection
+
+**DTP #3: Baseline Assessment Gap**
+- **Problem:** No documented baseline laboratory values, vital signs, or clinical assessments
+- **Risk:** Unable to establish monitoring parameters or detect therapy-related changes
+
+**DTP #4: Premedication Protocol Undefined**
+- **Problem:** No premedication regimen specified for IVIG infusion
+- **Risk:** Increased risk of infusion reactions
+
+---
+
+## 2. GOALS (SMART Format)
+
+### Goal #1: Complete Clinical Assessment
+- **Specific:** Obtain complete diagnosis, indication for IVIG, and baseline clinical parameters
+- **Measurable:** 100% of required baseline data collected
+- **Achievable:** Through provider communication and chart review
+- **Relevant:** Essential for safe and effective IVIG therapy
+- **Time-bound:** Within 24 hours of care plan initiation
+
+### Goal #2: Establish Optimal IVIG Regimen
+- **Specific:** Define appropriate IVIG dose, infusion rate, and schedule based on indication
+- **Measurable:** Evidence-based dosing protocol implemented
+- **Achievable:** Based on standard guidelines for confirmed indication
+- **Relevant:** Ensures therapeutic efficacy while minimizing adverse effects
+- **Time-bound:** Prior to first infusion
+
+### Goal #3: Prevent Infusion Reactions
+- **Specific:** Implement comprehensive premedication and monitoring protocol
+- **Measurable:** Zero severe infusion reactions during therapy course
+- **Achievable:** Through evidence-based premedication and careful monitoring
+- **Relevant:** Critical for patient safety and therapy continuation
+- **Time-bound:** Ongoing throughout treatment course
+
+---
+
+## 3. PHARMACIST INTERVENTIONS / PLAN
+
+### Immediate Actions Required:
+1. **Contact prescribing physician** to clarify:
+   - Complete diagnosis (G70.0 appears to be myasthenia gravis - confirm)
+   - Specific indication for IVIG therapy
+   - Intended dose, frequency, and duration
+   - Patient's clinical status and severity
+
+### Dosing & Administration (Pending Indication Confirmation):
+- **If Myasthenia Gravis Crisis:** 2 g/kg divided over 2-5 days (400 mg/kg/day)
+- **If Maintenance Therapy:** 1-2 g/kg every 3-4 weeks
+- **Infusion Rate:** Start at 0.5 mg/kg/min, increase gradually as tolerated (max 4-8 mg/kg/min)
+
+### Premedication Protocol:
+- **Standard Premedication:**
+  - Acetaminophen 650 mg PO 30-60 minutes pre-infusion
+  - Diphenhydramine 25-50 mg PO/IV 30-60 minutes pre-infusion
+- **High-Risk Patients:** Consider methylprednisolone 1 mg/kg (max 125 mg) IV
+
+### Risk Mitigation Strategies:
+- **Renal Protection:** Ensure adequate hydration; avoid concurrent nephrotoxic agents
+- **Thrombosis Prevention:** Assess VTE risk factors; consider prophylaxis if high risk
+- **Hemolysis Monitoring:** Baseline and post-infusion hemoglobin/haptoglobin
+
+### Monitoring During Therapy:
+- **Vital Signs:** Every 15 minutes × 1 hour, then every 30 minutes
+- **Infusion Site:** Continuous assessment for infiltration/phlebitis
+- **Clinical Response:** Neurological assessment if myasthenia gravis
+
+---
+
+## 4. MONITORING PLAN & LAB SCHEDULE
+
+### Baseline Labs Required:
+- **Complete Blood Count** with differential
+- **Comprehensive Metabolic Panel** (including creatinine, BUN)
+- **Liver Function Tests** (AST, ALT, bilirubin)
+- **Immunoglobulin Levels** (IgG, IgA, IgM)
+- **Urinalysis** with microscopy
+- **Coagulation Studies** (PT/INR, aPTT)
+
+### Monitoring Schedule:
+- **During Infusion:** Continuous vital signs and clinical monitoring
+- **24-48 Hours Post-Infusion:** CBC, BMP, urinalysis
+- **Weekly (if multiple doses):** CBC, BMP, LFTs
+- **Monthly (maintenance therapy):** Complete lab panel
+
+### Red Flags Requiring Immediate Action:
+- **Severe Infusion Reaction:** Hypotension, bronchospasm, angioedema
+- **Acute Kidney Injury:** Creatinine increase >0.5 mg/dL or >50% from baseline
+- **Hemolysis:** Hemoglobin drop >2 g/dL, elevated LDH, decreased haptoglobin
+- **Thrombotic Events:** Chest pain, shortness of breath, neurological changes
+
+---
+
+## 5. PATIENT EDUCATION POINTS
+
+### Medication Purpose:
+- IVIG contains antibodies that help regulate the immune system
+- Expected to improve muscle strength and reduce symptoms (if myasthenia gravis confirmed)
+
+### Administration Process:
+- Infusion will be given slowly through IV over several hours
+- Multiple infusions may be needed depending on condition
+- Premedications will be given to prevent reactions
+
+### Side Effects to Monitor:
+- **Common:** Headache, fatigue, muscle aches, mild fever
+- **Serious:** Severe headache, chest pain, difficulty breathing, swelling
+- **Report Immediately:** Signs of kidney problems (decreased urination, swelling)
+
+### When to Seek Medical Attention:
+- Persistent severe headache or neck stiffness
+- Chest pain or shortness of breath
+- Signs of blood clots (leg pain, swelling)
+- Unusual bleeding or bruising
+
+### Follow-up Requirements:
+- Regular lab monitoring as scheduled
+- Neurology follow-up appointments (if applicable)
+- Report any changes in symptoms or new concerns
+
+---
+
+## ADDITIONAL INFORMATION NEEDED:
+1. Complete primary diagnosis and clinical presentation
+2. Previous treatment history and response
+3. Baseline neurological assessment (if myasthenia gravis)
+4. Insurance authorization status
+5. Patient's current functional status and quality of life measures
+
+**Next Review Date:** [Within 24-48 hours or after first infusion]
+
+**Pharmacist Signature:** _________________ **Date:** _________"
+5497ab44-ec48-4ddc-935d-641e9f218b34,2026-01-07,123456,john,doe,1212-12-12,1234567890,h,IVIG,G70.0,completed,"# PHARMACIST CARE PLAN
+
+**Patient:** John Doe  
+**MRN:** 123456  
+**Date:** October 15, 2025  
+**Pharmacist:** [Name]
+
+---
+
+## 1. PROBLEM LIST / DRUG THERAPY PROBLEMS (DTPs)
+
+### Primary DTPs:
+1. **Indication for Immunomodulation**
+   - Generalized myasthenia gravis (MGFA Class IIb) with progressive weakness requiring IVIG therapy
+   - Need for rapid symptomatic control prior to planned thymectomy
+
+2. **Safety Risk - Infusion Reactions**
+   - Risk of acute infusion reactions (headache, fever, chills, nausea)
+   - Potential for serious adverse events (thrombosis, hemolysis, renal dysfunction)
+
+3. **Monitoring Requirements**
+   - Need for comprehensive vital sign and respiratory function monitoring
+   - Baseline renal function assessment required (current eGFR >90 mL/min/1.73m²)
+
+4. **Drug Interaction Potential**
+   - Concurrent prednisone may affect immune response and infection risk
+   - Pyridostigmine timing considerations during infusion days
+
+### Secondary DTPs:
+5. **Adherence Optimization**
+   - Complex 5-day outpatient infusion schedule requiring patient commitment
+   - Coordination with existing medication regimen
+
+---
+
+## 2. GOALS (SMART Format)
+
+### Goal 1: Safe IVIG Administration
+- **Specific:** Complete 5-day IVIG course (2 g/kg total = 144g) without serious adverse events
+- **Measurable:** Zero grade 3-4 infusion reactions, maintain stable vital signs
+- **Achievable:** With appropriate premedication and monitoring protocols
+- **Relevant:** Essential for myasthenia gravis symptom control
+- **Time-bound:** Complete by October 20, 2025
+
+### Goal 2: Clinical Improvement
+- **Specific:** Improve myasthenia gravis symptoms (ptosis, proximal weakness, speech fatigue)
+- **Measurable:** Subjective improvement in daily activities, stable/improved FVC (>2.7L)
+- **Achievable:** Based on evidence for IVIG in MG
+- **Relevant:** Primary therapeutic objective
+- **Time-bound:** Assess improvement within 2 weeks post-completion
+
+### Goal 3: Maintain Organ Function
+- **Specific:** Preserve renal function and prevent thrombotic complications
+- **Measurable:** SCr remains <1.0 mg/dL, no clinical signs of thrombosis
+- **Achievable:** With proper hydration and monitoring
+- **Relevant:** Critical safety parameter
+- **Time-bound:** Throughout treatment course and 2-week follow-up
+
+---
+
+## 3. PHARMACIST INTERVENTIONS / PLAN
+
+### A. Dosing & Administration
+- **Product:** Privigen (10% IVIG)
+- **Total Dose:** 2 g/kg = 144g total (using documented weight of 72kg from clinical notes)
+- **Daily Dose:** 0.4 g/kg/day × 5 days = 28.8g daily
+- **Dilution:** Per manufacturer guidelines for 10% solution
+
+### B. Premedication Protocol
+- **Standard Premedication:**
+  - Acetaminophen 650mg PO 30 minutes pre-infusion
+  - Diphenhydramine 25mg PO 30 minutes pre-infusion
+- **Consider for subsequent days if reactions occur:**
+  - Hydrocortisone 100mg IV or methylprednisolone 40mg IV
+
+### C. Infusion Rate Management
+- **Initial Rate:** 0.5 mL/kg/hr for first 30 minutes
+- **Titration:** Increase by 0.5 mL/kg/hr every 30 minutes as tolerated
+- **Maximum Rate:** Per manufacturer recommendations (typically 4-8 mL/kg/hr)
+- **Rate Reduction:** Decrease by 50% if mild reactions occur
+
+### D. Hydration & Organ Protection
+- **Hydration:** Ensure adequate oral fluid intake; consider IV hydration if risk factors present
+- **Renal Protection:** Monitor urine output, avoid concurrent nephrotoxic agents
+- **Thrombosis Prevention:** Encourage mobility between infusions, assess risk factors
+
+### E. Concomitant Medication Management
+- **Continue Current Regimen:**
+  - Pyridostigmine 60mg PO q6h PRN (maintain current dosing)
+  - Prednisone 10mg PO daily (continue as prescribed)
+  - Lisinopril 10mg daily, Omeprazole 20mg daily
+- **Timing Considerations:** Administer morning medications before infusion start
+
+### F. Adverse Event Management
+- **Mild Reactions (headache, nausea):**
+  - Slow infusion rate by 50%
+  - Additional acetaminophen 325mg if needed
+  - Resume normal rate after 30 minutes if symptoms resolve
+- **Moderate Reactions (fever, chills):**
+  - Stop infusion temporarily
+  - Administer hydrocortisone 100mg IV
+  - Resume at 50% rate when symptoms resolve
+- **Severe Reactions:**
+  - Stop infusion immediately
+  - Notify physician
+  - Supportive care per institutional protocols
+
+---
+
+## 4. MONITORING PLAN & LAB SCHEDULE
+
+### Baseline Requirements (Completed):
+- ✓ CBC with differential
+- ✓ Comprehensive metabolic panel (SCr 0.78, eGFR >90)
+- ✓ Baseline IgG level (10 g/L documented)
+- ✓ Baseline FVC (2.8L, 70% predicted)
+
+### Daily Monitoring (Days 1-5):
+- **Vital Signs:** q15 minutes × 1 hour, then q30 minutes during infusion
+- **Respiratory:** FVC daily pre-infusion
+- **Clinical Assessment:** Neurological symptoms, infusion site
+- **Documentation:** Infusion rate, total volume, adverse events
+
+### Post-Infusion Monitoring:
+- **Day 7:** Phone call to assess for delayed reactions
+- **Week 2:** Clinical follow-up (completed 10/30/25)
+- **Week 4:** Neurology follow-up as scheduled
+
+### Red Flag Parameters:
+- Temperature >38.5°C during infusion
+- Systolic BP increase >40mmHg from baseline
+- Respiratory distress or FVC decline >20%
+- Signs of thrombosis (chest pain, leg swelling, neurological changes)
+- Oliguria or SCr increase >0.5mg/dL from baseline
+
+---
+
+## 5. PATIENT EDUCATION POINTS
+
+### Pre-Infusion Education:
+- **Purpose:** ""IVIG will help reduce the autoimmune attack on your muscle receptors and improve your strength before surgery""
+- **Schedule:** ""You'll need to come in for 5 consecutive days for about 4-6 hours each day""
+- **Preparation:** ""Take your morning medications as usual, eat a light meal, and stay well-hydrated""
+
+### During Treatment:
+- **Expected Effects:** ""You may experience mild headache or fatigue during infusion - this is common""
+- **Communication:** ""Tell your nurse immediately if you feel chest pain, severe headache, or difficulty breathing""
+- **Comfort Measures:** ""Bring entertainment, dress comfortably, and request breaks as needed""
+
+### Post-Infusion Care:
+- **Activity:** ""You can resume normal activities but avoid strenuous exercise for 24 hours after each infusion""
+- **Symptom Monitoring:** ""Watch for signs of blood clots: leg pain/swelling, chest pain, or sudden shortness of breath""
+- **Medication Adherence:** ""Continue all your regular medications as prescribed""
+
+### When to Seek Medical Attention:
+- Severe headache that doesn't respond to acetaminophen
+- Fever >101°F (38.3°C) within 24 hours of infusion
+- Signs of blood clots (leg pain, chest pain, sudden weakness)
+- Worsening myasthenia symptoms or new respiratory difficulty
+- Dark urine or decreased urination
+
+### Follow-up Expectations:
+- ""Improvement may be gradual over 1-2 weeks""
+- ""We'll call you in one week to check on your progress""
+- ""Your neurologist will see you in 4 weeks to plan next steps""
+
+---
+
+**Pharmacist Signature:** [Name], PharmD  
+**Date:** October 15, 2025  
+**Next Review:** October 30, 2025"
+16486df8-5af7-4bb3-87f2-231fcb3556d0,2026-01-07,123456,john,doe,1212-12-12,1234567896,Nine,sdf,G70.0,completed,"# PHARMACIST CARE PLAN
+
+**Patient:** John Doe  
+**MRN:** 123456  
+**Date:** [Current Date]  
+**Pharmacist:** [Name]
+
+---
+
+## 1. PROBLEM LIST / DRUG THERAPY PROBLEMS (DTPs)
+
+### **CRITICAL DATA DEFICIENCIES IDENTIFIED:**
+
+**DTP #1: Incomplete Diagnosis Information**
+- Primary diagnosis ""G70.0 - g"" appears truncated/incomplete
+- G70.0 typically refers to Myasthenia Gravis, but confirmation needed
+- Severity, subtype, and disease stage not documented
+
+**DTP #2: Inadequate Medication Documentation**
+- Current medication order listed as ""sdf"" - appears to be data entry error
+- No medication history available
+- Unable to assess appropriateness of therapy without complete medication information
+
+**DTP #3: Insufficient Clinical Data**
+- Clinical records show ""dsf"" - inadequate for clinical assessment
+- Missing vital signs, laboratory values, functional status
+- No documentation of symptom severity or disease progression
+
+**DTP #4: Incomplete Patient Demographics**
+- Date of birth appears incorrect (1212-12-12)
+- Sex listed as female but name suggests male - clarification needed
+- Missing contact information and insurance status
+
+---
+
+## 2. GOALS (SMART Format)
+
+**Cannot establish specific SMART goals due to incomplete patient data.**
+
+**Immediate Goal:**
+- **Specific:** Obtain complete and accurate patient information within 24 hours
+- **Measurable:** 100% of missing data elements identified and collected
+- **Achievable:** Yes, through chart review and patient/provider contact
+- **Relevant:** Essential for safe medication management
+- **Time-bound:** Within 24 hours of care plan initiation
+
+---
+
+## 3. PHARMACIST INTERVENTIONS / PLAN
+
+### **IMMEDIATE ACTIONS REQUIRED:**
+
+**A. Data Collection & Verification**
+1. **Contact prescribing physician** to clarify:
+   - Complete primary diagnosis
+   - Intended medication order
+   - Treatment goals and urgency
+
+2. **Patient Interview** (if accessible):
+   - Verify demographic information
+   - Obtain complete medication history
+   - Assess current symptoms and functional status
+   - Identify barriers to care
+
+3. **Chart Review:**
+   - Review previous hospitalizations/clinic visits
+   - Obtain recent laboratory results
+   - Review imaging studies if applicable
+
+**B. Medication Reconciliation**
+- Cannot proceed until medication order is clarified
+- Will require complete review once accurate information obtained
+
+**C. Safety Assessment**
+- Hold any medication dispensing until complete information verified
+- Ensure patient safety protocols are in place
+
+---
+
+## 4. MONITORING PLAN & LAB SCHEDULE
+
+**Cannot establish monitoring plan without complete patient information.**
+
+**Immediate Monitoring Needs:**
+- Patient safety assessment
+- Communication with healthcare team
+- Documentation of data collection efforts
+
+**Once Complete Information Obtained:**
+- Establish baseline assessments
+- Develop condition-specific monitoring parameters
+- Create follow-up schedule based on diagnosis and treatment plan
+
+---
+
+## 5. PATIENT EDUCATION POINTS
+
+**Current Priority:**
+- Explain to patient/caregiver that medication therapy is on hold pending clarification of orders
+- Emphasize importance of accurate medical information
+- Provide contact information for questions or concerns
+
+**Future Education (pending complete information):**
+- Disease-specific education
+- Medication administration instructions
+- Monitoring requirements
+- Emergency contact procedures
+
+---
+
+## RECOMMENDATIONS FOR HEALTHCARE TEAM
+
+1. **Immediate Chart Review Required** - Current documentation insufficient for safe medication management
+
+2. **Provider Communication Needed** - Clarify diagnosis and medication orders before proceeding
+
+3. **Patient Safety Protocol** - No medications should be dispensed until complete information verified
+
+4. **Documentation Improvement** - Implement checks to prevent incomplete data entry
+
+---
+
+## FOLLOW-UP PLAN
+
+- **Within 4 hours:** Attempt contact with prescribing physician
+- **Within 8 hours:** Complete patient interview if possible
+- **Within 24 hours:** Obtain all missing information and update care plan
+- **Within 48 hours:** Generate comprehensive care plan with complete data
+
+---
+
+**CRITICAL NOTE:** This care plan cannot be completed safely without accurate patient information. All medication-related activities should be suspended until complete and verified data is obtained.
+
+**Next Review Date:** Within 24 hours or upon receipt of complete patient information
+
+---
+
+*This care plan will be updated immediately upon receipt of complete patient information.*"
+7acd1601-c89c-408e-a04f-b3e2d3c31eb0,2026-01-07,111111,cynthia,g,1111-11-11,1111111111,Nine,IVIG,G71.0,completed,"# Mock Care Plan
+
+This is a mock care plan for testing.
+
+## Problems
+- Test problem
+
+## Goals
+- Test goal
+
+## Interventions
+- Test intervention"
+203ce20c-d7c7-466e-97b8-8cb2fafdb2e2,2026-01-07,123456,john,doe,1212-12-12,1234567844,df,IVIG,G70.0,completed,"# Mock Care Plan
+
+This is a mock care plan for testing.
+
+## Problems
+- Test problem
+
+## Goals
+- Test goal
+
+## Interventions
+- Test intervention"
+0bd1cfa6-4df0-4d3e-866c-51cfb3c8f77f,2026-01-07,000005,Emma,Davis,1990-01-05,1234567810,Dr. Michael Chen,SCIG (Hizentra),D80.0,completed,"# PHARMACIST CARE PLAN - IVIG FOR MYASTHENIA GRAVIS
+
+## 1. PROBLEM LIST / DRUG THERAPY PROBLEMS (DTPs)
+
+1. **Need for rapid immunomodulation** - Patient requires IVIG to reduce myasthenic symptoms prior to thymectomy
+2. **Risk of infusion-related reactions** - Headache, chills, fever, rare anaphylaxis possible
+3. **Risk of renal dysfunction** - Monitor in patients with risk factors
+4. **Risk of thromboembolic events** - Rare but serious; assess baseline risk
+5. **Drug interactions** - Timing with pyridostigmine; steroid management
+
+## 2. GOALS (SMART Format)
+
+### Primary Goal
+- Achieve clinically meaningful improvement in muscle strength within 2 weeks of completing IVIG course
+- Measurable: Improved MG-ADL score, reduced ptosis, improved FVC
+
+### Safety Goals
+- No severe infusion reactions during therapy
+- No acute kidney injury (SCr increase <0.3 mg/dL within 7 days)
+- No thromboembolic events
+
+### Process Goal
+- Complete full 2 g/kg course (0.4 g/kg/day × 5 days) with documented monitoring
+
+## 3. PHARMACIST INTERVENTIONS / PLAN
+
+### Dosing & Administration
+- Total dose: 2.0 g/kg = 144 g for 72 kg patient
+- Daily dose: 28.8 g/day × 5 days
+- Product: Privigen 10% IVIG
+- Document lot number and expiration
+
+### Premedication
+- Acetaminophen 650 mg PO 30-60 min pre-infusion
+- Diphenhydramine 25-50 mg PO 30-60 min pre-infusion
+- Consider low-dose methylprednisolone if prior reactions
+
+### Infusion Protocol
+- Start: 0.5 mL/kg/hr for first 30 minutes
+- Titrate: Increase by 0.5 mL/kg/hr every 30 min as tolerated
+- Maximum: Per manufacturer guidelines (typically 8 mL/kg/hr for Privigen)
+
+### Hydration & Renal Protection
+- Ensure adequate hydration pre-infusion (250-500 mL NS if not fluid-overloaded)
+- Monitor SCr at baseline and 3-7 days post-course
+
+## 4. MONITORING PLAN & LAB SCHEDULE
+
+| Timepoint | Parameters |
+|-----------|------------|
+| Baseline | CBC, BMP, FVC, vital signs |
+| During infusion | VS q15min × 1hr, then q30min |
+| Daily | FVC, symptom assessment |
+| Post-course (Day 7) | BMP, clinical response |
+| Follow-up (2 weeks) | Neurology assessment |
+
+## 5. PATIENT EDUCATION POINTS
+
+1. Purpose of IVIG therapy and expected timeline for improvement
+2. Common side effects (headache, fatigue) and how to manage
+3. Warning signs requiring immediate attention (chest pain, SOB, severe headache)
+4. Importance of staying hydrated
+5. Continue home medications as prescribed
+"
+c589c56f-4587-444d-9216-398d628522ff,2026-01-07,000004,David,Kim,1958-07-30,1234567828,Dr. Sarah Johnson,Rituximab,M32.10,pending,
+f307f530-8a3e-4c71-a98e-0bf7f831af99,2026-01-07,000003,Carol,Thompson,1982-11-22,1234567893,Dr. Jane Smith,IVIG (Privigen),G61.0,processing,
+da91045a-b681-4c6e-b1b5-b397851b6864,2026-01-07,000002,Bob,Martinez,1965-03-15,1234567810,Dr. Michael Chen,IVIG (Gammagard),D83.9,pending,
+3c385d99-2723-4d62-81ce-ec82e48160cd,2026-01-07,000001,Alice,Williams,1979-06-08,1234567893,Dr. Jane Smith,IVIG (Privigen),G70.00,completed,"# PHARMACIST CARE PLAN - IVIG FOR MYASTHENIA GRAVIS
+
+## 1. PROBLEM LIST / DRUG THERAPY PROBLEMS (DTPs)
+
+1. **Need for rapid immunomodulation** - Patient requires IVIG to reduce myasthenic symptoms prior to thymectomy
+2. **Risk of infusion-related reactions** - Headache, chills, fever, rare anaphylaxis possible
+3. **Risk of renal dysfunction** - Monitor in patients with risk factors
+4. **Risk of thromboembolic events** - Rare but serious; assess baseline risk
+5. **Drug interactions** - Timing with pyridostigmine; steroid management
+
+## 2. GOALS (SMART Format)
+
+### Primary Goal
+- Achieve clinically meaningful improvement in muscle strength within 2 weeks of completing IVIG course
+- Measurable: Improved MG-ADL score, reduced ptosis, improved FVC
+
+### Safety Goals
+- No severe infusion reactions during therapy
+- No acute kidney injury (SCr increase <0.3 mg/dL within 7 days)
+- No thromboembolic events
+
+### Process Goal
+- Complete full 2 g/kg course (0.4 g/kg/day × 5 days) with documented monitoring
+
+## 3. PHARMACIST INTERVENTIONS / PLAN
+
+### Dosing & Administration
+- Total dose: 2.0 g/kg = 144 g for 72 kg patient
+- Daily dose: 28.8 g/day × 5 days
+- Product: Privigen 10% IVIG
+- Document lot number and expiration
+
+### Premedication
+- Acetaminophen 650 mg PO 30-60 min pre-infusion
+- Diphenhydramine 25-50 mg PO 30-60 min pre-infusion
+- Consider low-dose methylprednisolone if prior reactions
+
+### Infusion Protocol
+- Start: 0.5 mL/kg/hr for first 30 minutes
+- Titrate: Increase by 0.5 mL/kg/hr every 30 min as tolerated
+- Maximum: Per manufacturer guidelines (typically 8 mL/kg/hr for Privigen)
+
+### Hydration & Renal Protection
+- Ensure adequate hydration pre-infusion (250-500 mL NS if not fluid-overloaded)
+- Monitor SCr at baseline and 3-7 days post-course
+
+## 4. MONITORING PLAN & LAB SCHEDULE
+
+| Timepoint | Parameters |
+|-----------|------------|
+| Baseline | CBC, BMP, FVC, vital signs |
+| During infusion | VS q15min × 1hr, then q30min |
+| Daily | FVC, symptom assessment |
+| Post-course (Day 7) | BMP, clinical response |
+| Follow-up (2 weeks) | Neurology assessment |
+
+## 5. PATIENT EDUCATION POINTS
+
+1. Purpose of IVIG therapy and expected timeline for improvement
+2. Common side effects (headache, fatigue) and how to manage
+3. Warning signs requiring immediate attention (chest pain, SOB, severe headache)
+4. Importance of staying hydrated
+5. Continue home medications as prescribed
+"

@@ -19,6 +19,6 @@ urlpatterns = [
     path('orders/<int:pk>/careplan/download', views.CarePlanDownload.as_view(), name='careplan-download'),
     # GET /api/orders/42/careplan            → 获取 Care Plan 内容
     path('orders/<int:pk>/careplan', views.CarePlanView.as_view(), name='careplan-view'),
-    #POST /api/intake/?source=clinic_b
+    # POST /api/intake/?source=clinic_b
     path('intake/',views.ExternalIntakeView.as_view(), name = 'external-intake'),
 ]
