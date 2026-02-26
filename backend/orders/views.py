@@ -27,6 +27,17 @@ class OrderListCreate(generics.ListCreateAPIView):
     def get_queryset(self):
         queryset = Order.objects.all().order_by('-created_at')
 
+        # 优先处理 order_id（匹配 Lambda 的单接口参数名）
+        order_id = self.request.query_params.get('order_id', '').strip()
+        if order_id:
+            # 尝试作为 ID 匹配，或者作为 MRN 匹配
+            if order_id.isdigit():
+                queryset = queryset.filter(Q(id=order_id) | Q(patient__mrn=order_id))
+            else:
+                queryset = queryset.filter(Q(patient__mrn=order_id))
+            return queryset
+
+        # 保持对旧 search 参数的支持
         search = self.request.query_params.get('search', '').strip()
         if search:
             queryset = queryset.filter(
