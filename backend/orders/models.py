@@ -21,7 +21,16 @@ class Patient(models.Model):
     last_name = models.CharField(max_length=100)
     mrn = models.CharField(max_length=6, unique=True)  # unique=True → 数据库层面保证不重复
     dob = models.DateField()                             # Date of Birth
+    
+    # 新增字段
+    sex                  = models.CharField(max_length=10, blank=True, default='')
+    weight_kg            = models.FloatField(null=True, blank=True)
+    allergies            = models.TextField(blank=True, default='')
+    primary_diagnosis    = models.CharField(max_length=20, blank=True, default='')
+    additional_diagnoses = models.JSONField(default=list, blank=True)
+    
     created_at = models.DateTimeField(auto_now_add=True)
+    
 
     def __str__(self):
         return f"{self.last_name}, {self.first_name} (MRN: {self.mrn})"
