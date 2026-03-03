@@ -45,3 +45,7 @@ terraform.rc
 *.tfstate
 *.tfstate.backup
 terraform.tfvars
+
+# Lambda dependency packages (very heavy, skip them!)
+careplan-terraform/lambda_functions/package/
+careplan-terraform/lambda_functions/*.zip

@@ -46,9 +46,45 @@ class OrderListCreate(generics.ListCreateAPIView):
                 Q(patient__mrn__icontains=search) |
                 Q(medication_name__icontains=search)
             )
+        
+        status_filter = self.request.query_params.get('status','').strip()
+        if status_filter:
+            queryset = queryset.filter(status = status_filter)
+        
+        patient_name = self.request.query_params.get('patient_name','').strip()
+        if patient_name:
+            queryset = queryset.filter(
+                Q(patient__first_name__icontains = patient_name) |
+                Q(patient__last_name__icontains = patient_name)
+            )
 
         return queryset
 
+    # ── 新增：override list() 加分页 ─────────────────────────────
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+
+        # 读参数，做好防御
+        try:
+            page = max(1, int(request.query_params.get('page', 1)))
+            page_size = min(100, max(1, int(request.query_params.get('page_size', 20))))
+        except (ValueError, TypeError):
+            page = 1
+            page_size = 20
+
+        # 先算总数，再切片（顺序不能反！）
+        total_count = queryset.count()
+        start = (page - 1) * page_size
+        orders = queryset[start : start + page_size]
+
+        serializer = self.get_serializer(orders, many=True)
+        return Response({
+            'count': total_count,
+            'page': page,
+            'page_size': page_size,
+            'results': serializer.data
+        })
+        
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(
             data=request.data,
