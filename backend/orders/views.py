@@ -16,6 +16,8 @@ from .models import Order
 from .models import Order, Patient
 from .serializers import OrderSerializer, PatientSerializer
 from . import services
+from .serializers import OrderSerializer, PatientSerializer, ProviderSerializer
+from .models import Order, Patient, Provider
 
 
 class OrderListCreate(generics.ListCreateAPIView):
@@ -284,5 +286,94 @@ class PatientDetail(APIView):
             )
         serializer.save()
         return Response(serializer.data,status=200)
-
+    
+    def delete(self, request, pk):
+        # 第1步：找患者
+        patient = Patient.objects.filter(pk=pk).first()
+        if not patient:
+            return Response({'error': 'Patient not found'}, status=404)
+        
+        # 第2步：检查有没有 pending/processing 的订单
+        active_orders = Order.objects.filter(
+            patient=patient,
+            status__in=['pending', 'processing']
+        )
+        if active_orders.exists():
+            return Response({
+                'error': 'Cannot delete patient with active orders',
+                'active_orders': list(active_orders.values_list('id', flat=True))
+            }, status=409)
+        
+        # 第3步：删除
+        patient.delete()
+        return Response(status=204)
+    
+class ProviderCreateView(APIView):
+    def post(self, request):
+        # 第1步：验证
+        serializer = ProviderSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(
+                {'error': 'Validation failed', 'details': serializer.errors},
+                status=400
+            )
+        
+        # 第2步：同名不同NPI → 警告
+        name = request.data.get('name')
+        npi  = request.data.get('npi')
+        existing = Provider.objects.filter(name=name).exclude(npi=npi).first()
+        if existing:
+            return Response({
+                'warning': f"A provider named '{name}' already exists with NPI {existing.npi}. Please verify this is not a duplicate.",
+                'existing_provider_id': existing.id
+            }, status=409)
+        
+        # 第3步：创建
+        provider = serializer.save()
+        return Response(serializer.data, status=201)
+# ─── Ticket 8: GET /patients/{id}/orders ────────────────────
+class PatientOrdersView(APIView):
+    def get(self, request, pk):
+        patient = Patient.objects.filter(pk=pk).first()
+        if not patient:
+            return Response({'error': 'Patient not found'}, status=404)
+        
+        orders = Order.objects.filter(patient=patient).order_by('-created_at')
+        return Response({
+            'patient_id': patient.id,
+            'patient_name': f"{patient.first_name} {patient.last_name}",
+            'orders': [
+                {
+                    'id': o.id,
+                    'medication_name': o.medication_name,
+                    'status': o.status,
+                    'created_at': o.created_at,
+                }
+                for o in orders
+            ]
+        })
+# ─── Ticket 11: POST /orders/{id}/retry ─────────────────────
+class OrderRetryView(APIView):
+    def post(self, request, pk):
+        order = Order.objects.filter(pk=pk).first()
+        if not order:
+            return Response({'error': 'Order not found'}, status=404)
+        
+        # 只有 failed 才能重试
+        if order.status != 'failed':
+            return Response({
+                'error': 'Order is not in failed status',
+                'current_status': order.status
+            }, status=409)
+        
+        # 重置状态，重新触发任务
+        order.status = 'pending'
+        order.save()
+        services.submit_care_plan_task(order.id)
+        
+        return Response({
+            'order_id': order.id,
+            'status': 'processing',
+            'message': 'CarePlan generation restarted'
+        }, status=202)
 

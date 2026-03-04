@@ -101,3 +101,15 @@ class PatientSerializer(serializers.ModelSerializer):
         if value and not re.match(r'^[A-Z][0-9]{2}(\.[0-9]+)?$', value):
             raise serializers.ValidationError("Invalid ICD-10 format")
         return value
+
+
+class ProviderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Provider
+        fields = ['id', 'name', 'npi', 'created_at']
+        read_only_fields = ['id', 'created_at']
+
+    def validate_npi(self, value):
+        if not value.isdigit() or len(value) != 10:
+            raise serializers.ValidationError("NPI must be exactly 10 digits")
+        return value
