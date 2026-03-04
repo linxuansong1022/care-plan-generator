@@ -72,3 +72,32 @@ class OrderSerializer(serializers.ModelSerializer):
         )
         
         return create_order(internal_order)
+
+class PatientSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Patient
+        fields = [
+            'id', 'first_name', 'last_name', 'mrn',
+            'dob', 'sex', 'weight_kg', 'allergies',
+            'primary_diagnosis', 'additional_diagnoses', 'created_at'
+        ]
+        read_only_fields = ['id', 'created_at']
+
+    def validate_mrn(self,value):
+        if not value.isdigit() or len(value) !=6:
+            raise serializers.ValidationError("MRN must be exactly 6 digits")
+        return value
+
+    def validate_weight_kg(self, value):
+        # weight_kg 必须大于 0
+        if value is not None and value <= 0:
+            raise serializers.ValidationError("Weight must be greater than 0")
+        return value
+
+    def validate_primary_diagnosis(self, value):
+        # ICD-10 格式：1个字母 + 2位数字 + 可选小数点和更多数字
+        # 例如：G70.00 ✅   R51 ✅   abc ❌
+        import re
+        if value and not re.match(r'^[A-Z][0-9]{2}(\.[0-9]+)?$', value):
+            raise serializers.ValidationError("Invalid ICD-10 format")
+        return value

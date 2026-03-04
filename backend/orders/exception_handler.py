@@ -80,11 +80,16 @@ def unified_exception_handler(exc, context):
     # 情况 3：DRF 也不认识（比如 500 错误）
     # 返回通用错误，不暴露 stack trace
     # ────────────────────────────────────────────
+    # 情况 3：临时调试用
+    import traceback
+    print("=== UNHANDLED EXCEPTION ===")
+    print(traceback.format_exc())
+
     return Response(
         {
             "type": "error",
             "code": "INTERNAL_ERROR",
-            "message": "An unexpected error occurred",
+            "message": str(exc),
             "detail": [],
         },
         status=status.HTTP_500_INTERNAL_SERVER_ERROR

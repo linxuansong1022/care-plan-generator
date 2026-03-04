@@ -21,4 +21,12 @@ urlpatterns = [
     path('orders/<int:pk>/careplan', views.CarePlanView.as_view(), name='careplan-view'),
     # POST /api/intake/?source=clinic_b
     path('intake/',views.ExternalIntakeView.as_view(), name = 'external-intake'),
+
+    # POST /api/patients/  → 创建新患者
+    # GET  /api/patients/   分页查询
+    path('patients/', views.PatientCreateView.as_view(), name='patient-create'),
+
+    path('patients/<int:pk>/',views.PatientDetail.as_view(), name = 'patient-detail'),
+
+
 ]

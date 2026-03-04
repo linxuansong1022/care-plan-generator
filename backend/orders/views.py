@@ -5,6 +5,7 @@ Controller 层（views.py）
 只负责：接收 HTTP 请求 → 调 serializer 校验 → 调 service 处理 → 返回 HTTP 响应
 不做任何业务逻辑（不直接操作数据库、不调 LLM、不知道 Redis/Celery 的存在）
 """
+from django.template.defaultfilters import first
 from django.http import HttpResponse
 from django.db.models import Q
 from rest_framework import generics, status
@@ -12,7 +13,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import Order
-from .serializers import OrderSerializer
+from .models import Order, Patient
+from .serializers import OrderSerializer, PatientSerializer
 from . import services
 
 
@@ -84,7 +86,7 @@ class OrderListCreate(generics.ListCreateAPIView):
             'page_size': page_size,
             'results': serializer.data
         })
-        
+
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(
             data=request.data,
@@ -189,3 +191,98 @@ class ExternalIntakeView(APIView):
         except AdapterError as e: 
             # 数据转换失败 (比如必填项缺失，数据格式不对)
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+class PatientCreateView(APIView):
+    def post(self, request):
+        # 第1步：验证数据
+        serializer = PatientSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(
+                {"error": "Validation failed", "details": serializer.errors},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # 第2步：检查重复（同名+同生日）
+        first_name = request.data.get('first_name')
+        last_name  = request.data.get('last_name')
+        dob        = request.data.get('dob')
+        
+        existing = Patient.objects.filter(
+            first_name=first_name,
+            last_name=last_name,
+            dob=dob
+        ).first()
+        
+        if existing:
+            return Response(
+                {
+                    "warning": "A patient with the same name and date of birth already exists",
+                    "existing_patient_id": existing.id
+                },
+                status=status.HTTP_409_CONFLICT
+            )
+        
+        # 第3步：存数据库，返回 201
+        patient = serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
+    def get(self,request):
+        queryset = Patient.objects.all().order_by('-created_at')
+        #按照名字搜索
+        search = request.query_params.get('search','').strip()
+        #如果有search 过滤名字 模糊查询
+        if search:
+            queryset = queryset.filter(
+                Q(first_name__icontains=search) |
+                Q(last_name__icontains=search)
+            )
+        #4 读分页参数
+        page = max(1,int(request.query_params.get('page',1)))
+        page_size = min(100, max(1, int(request.query_params.get('page_size', 20))))
+
+        #5算总数
+        total_count = queryset.count()
+
+        #6 切片
+        start = (page - 1) * page_size
+        patients = queryset[start:start+page_size]
+        #7 序列化 
+        serializer = PatientSerializer(patients ,many=True)
+
+        return Response({
+            'count':total_count,
+            'page':page,
+            'page_size':page_size,
+            'results':serializer.data,
+        })
+
+class PatientDetail(APIView):
+    """GET /api/patient/id/ → 单个患者详情"""
+    def get(self,request,pk):
+        patient = Patient.objects.filter(pk=pk).first()
+        if not patient:
+            return Response({'error':'Patient not found'},status =404)
+        serializer = PatientSerializer(patient)
+        return Response(serializer.data)
+
+    def put(self,request,pk):
+        patient = Patient.objects.filter(pk=pk).first()
+        if not patient:
+            return Response({'error':'Patient not found'},status =404)
+        
+        if 'mrn' in request.data:
+            return Response(
+                {'error': 'Validation failed','details':{'mrn': 'MRN cannot be modified'}},
+                status = 400
+            )
+        
+        serializer = PatientSerializer(patient, data = request.data, partial = True)
+        if not serializer.is_valid():
+            return Response(
+                {'error': 'Validation failed','details':serializer.errors},
+                status = 400
+            )
+        serializer.save()
+        return Response(serializer.data,status=200)
+
+
