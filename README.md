@@ -1,81 +1,91 @@
-# CarePlan Generator - MVP (Day 2)
+# CarePlan Generator
 
-CVS Specialty Pharmacy 自动 Care Plan 生成系统
+**Automated Pharmaceutical Care Plan System** designed to streamline the workflow for pharmacists. By integrating large language models (LLMs), this system autonomously generates comprehensive patient care plans from medical orders, reducing the manual drafting time from 20-40 minutes per plan down to a 10-30 second background task.
 
-## 快速启动
+## 🌟 Project Highlights
 
-### 前提条件
-- Docker Desktop 已安装并运行
-- 一个 Anthropic API Key（从 https://console.anthropic.com 获取）
+- **Event-Driven Asynchronous Architecture**: Orchestrated an asynchronous queue system (Redis/Celery locally, AWS SQS/Lambda in production) to decouple the 10-30 second LLM invocation from the main thread. Utilizes polling and HTTP `202 Accepted` to confidently support 50+ concurrent requests without blocking the UI.
+- **Robust REST API Design**: Built a comprehensive and standard-compliant RESTful API. Strictly utilizes HTTP status codes (e.g., `409 Conflict` for business rule violations like duplicate patients, `202 Accepted` for async processing, `204 No Content` for clean deletions).
+- **Quality Assurance & Data Integrity**: Implemented a rigorous 3-layer validation pipeline filtering out format errors via Serializers, catching duplicates at the Service layer, and handling global exceptions cleanly. Accompanied by **83 Unit and Integration tests** achieving **81% code coverage**.
+- **Adapter Design Pattern for Multi-Source Ingestion**: Developed an extensible Intake Webhook capable of assimilating data from 4 heterogeneous sources (Web, JSON, XML, pipe-delimited) using the Adapter pattern. Adding new external clients requires zero changes to core business logic (Open-Closed Principle).
+- **Cloud Migration & Infrastructure-as-Code (IaC)**: Seamlessly migrated the local Dockerized application to an AWS Serverless environment (API Gateway, Lambda, SQS, RDS). Managed the entire cloud footprint through **Terraform**, empowering one-click declarative deployments and teardowns.
 
-### 启动步骤
+## 🏗️ Architecture Overview
 
+The system strictly adheres to a **5-Layer Architecture**, maintaining a platform-agnostic business logic layer shared between local and cloud environments:
+
+1. **Presentation Layer**: React frontend handling user interaction and order status polling.
+2. **API Layer**: Django REST Framework (Local) / AWS API Gateway (Cloud) routing HTTP requests.
+3. **Business Logic Layer**: Reusable `services.py` that handles validation, deduplication, and database operations.
+4. **Async Processing Layer**: Redis & Celery (Local) / SQS & Lambda (Cloud) driving background tasks.
+5. **Data Layer**: 4-table normalized PostgreSQL database (Patient, Provider, Order, CarePlan).
+
+### Deployment Mapping
+
+| Component | Local (Docker) | Production AWS (Serverless) |
+| :--- | :--- | :--- |
+| **API Entry** | localhost:8000 | API Gateway |
+| **HTTP Routing & Logic** | Django `views.py` | `post_orders` Lambda |
+| **Message Queue** | Redis | SQS `order-queue` |
+| **Async Worker (LLM)**| Celery Worker | `generate_care_plan` Lambda |
+| **Database** | Docker PostgreSQL | AWS RDS (PostgreSQL) |
+| **Failure Handling** | Celery Retries | SQS Dead Letter Queue (DLQ) |
+
+## 💻 Tech Stack
+
+- **Backend core**: Python, Django REST Framework
+- **Databases & Queue**: PostgreSQL, Redis, Celery
+- **Cloud (AWS)**: Lambda, API Gateway, SQS, RDS, CloudWatch
+- **Infrastructure & Monitoring**: Terraform (IaC), Docker, Docker Compose, Prometheus, Grafana
+- **AI Integration**: Google Cloud Vertex AI (Gemini Pro) via API
+
+## 🚀 Getting Started (Local Development)
+
+### Prerequisites
+- Docker & Docker Compose
+- API Key (e.g., Gemini Pro)
+
+### 1. Environment Setup
 ```bash
-# 1. 把你的 API Key 填到 .env 文件里
-#    打开 .env，把 sk-ant-xxxxx 替换成你的真实 key
-cp .env.example .env  # 或者直接编辑 .env
+cp .env.example .env
+# Edit .env and insert your database credentials and API Key
+```
 
-# 2. 一键启动所有服务
+### 2. Launch Local Environment (Docker)
+```bash
 docker compose up --build
+```
+This single command spins up the Frontend (Port 3000), API Server (Port 8000), PostgreSQL Database, Redis, Celery Worker, and local Monitoring stack.
 
-# 3. 等所有容器启动完毕后，打开浏览器
-#    前端：http://localhost:3000
-#    后端 API：http://localhost:8000/api/orders/
+- Frontend App: `http://localhost:3000`
+- API Endpoint: `http://localhost:8000/api/orders/`
+
+### 3. Run Tests
+```bash
+docker compose exec web python manage.py test
 ```
 
-### 测试数据
+## ☁️ AWS Deployment (Terraform)
 
-在前端表单里填写：
-- Patient First Name: `Jane`
-- Patient Last Name: `Doe`
-- MRN: `123456`
-- DOB: `1979-06-08`
-- Provider: `Dr. Smith`
-- NPI: `1234567890`
-- Medication: `IVIG`
-- Primary Diagnosis: `G70.01`
-
-点 Submit，等待 10-30 秒后应该能看到生成的 Care Plan。
-
-### 停止服务
+Ensure you have the AWS CLI configured and Terraform installed.
 
 ```bash
-docker compose down          # 停止容器
-docker compose down -v       # 停止容器 + 删除数据库数据
+cd careplan-terraform
+
+# Initialize Terraform plugins
+terraform init
+
+# Review the infrastructure plan
+terraform plan
+
+# Deploy the entire stack to AWS
+terraform apply
 ```
 
-## 项目结构
-
-```
-careplan-mvp/
-├── docker-compose.yml       # 定义所有容器
-├── .env                     # 环境变量（API Key 等）
-├── backend/
-│   ├── Dockerfile
-│   ├── requirements.txt
-│   ├── manage.py
-│   ├── careplan_backend/    # Django 项目配置
-│   │   ├── settings.py
-│   │   └── urls.py
-│   └── orders/              # 业务逻辑
-│       ├── models.py        # 数据库表定义
-│       ├── views.py         # API 处理逻辑 + LLM 调用
-│       ├── serializers.py   # JSON 序列化
-│       └── urls.py          # URL 路由
-└── frontend/
-    ├── Dockerfile
-    ├── package.json
-    ├── public/index.html
-    └── src/
-        ├── index.js
-        └── App.js           # 整个前端（表单 + 结果显示）
+To tear down all resources and stop incurring charges:
+```bash
+terraform destroy
 ```
 
-## 已知限制（Day 2 故意留下的，后续会逐步修复）
-
-- ⏳ 同步调 LLM，提交后要等 10-30 秒
-- 📦 所有数据在一张表里，没有分 Patient/Provider/Order
-- ❌ 没有输入验证（MRN 格式、NPI 格式、ICD-10 格式）
-- ❌ 没有重复检测
-- ❌ 没有 error handling（LLM 报错就炸了）
-- ❌ 所有逻辑在一个文件里，没有分层
+## 📄 License
+This MVP is an exploratory educational project detailing best-practices in software engineering, backend architecture, and cloud deployment.
